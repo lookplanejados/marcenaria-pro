@@ -60,5 +60,12 @@ export const AuthService = {
     async getAccessToken() {
         const { data: { session } } = await supabase.auth.getSession();
         return session?.access_token || null;
+    },
+
+    /**
+     * Alias para getCurrentUserProfile, usado nos forms de criação.
+     */
+    async getProfile(): Promise<UserProfile | null> {
+        return this.getCurrentUserProfile();
     }
 };

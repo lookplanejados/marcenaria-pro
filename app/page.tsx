@@ -1,9 +1,6 @@
-import { KanbanBoard } from '@/components/kanban';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-    return (
-        <main>
-            <KanbanBoard />
-        </main>
-    );
+    // Redireciona a raiz direto para a tela de login
+    redirect('/login');
 }

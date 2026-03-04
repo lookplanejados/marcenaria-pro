@@ -1,120 +1,280 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { supabase } from '@/lib/supabaseClient';
+import { NewSaleDialog } from './new-sale-dialog';
+import { ProjectDetailsSheet } from './project-details-sheet';
+import { toast } from 'sonner';
 
-// Tipagem base de uma Venda (Projeto) no Kanban
 type SaleProject = {
   id: string;
-  clientName: string;
+  client_name: string;
   status: 'Orçamento' | 'Produção' | 'Montagem' | 'Concluído';
-  totalValue: number;
-  balanceToReceive: number;
-  grossProfit: number;
-  grossMarginPercent: number;
+  total_value: number;
+  received_value: number;
+  raw_material_cost: number;
+  freight_cost: number;
+  commission_seller_percent: number;
+  commission_carpenter_percent: number;
+  rt_architect_percent: number;
 };
-
-const mockProjects: SaleProject[] = [
-  {
-    id: '1',
-    clientName: 'Cozinha Planejada - Sra. Mariana',
-    status: 'Produção',
-    totalValue: 24500,
-    balanceToReceive: 12250,
-    grossProfit: 8575,
-    grossMarginPercent: 35.0,
-  },
-  {
-    id: '2',
-    clientName: 'Painel TV Quarto - Joao Silva',
-    status: 'Orçamento',
-    totalValue: 3200,
-    balanceToReceive: 3200,
-    grossProfit: 1120,
-    grossMarginPercent: 35.0,
-  },
-  {
-    id: '3',
-    clientName: 'Móveis Banheiro Suite',
-    status: 'Montagem',
-    totalValue: 4800,
-    balanceToReceive: 1000,
-    grossProfit: 1440,
-    grossMarginPercent: 30.0,
-  }
-];
 
 const COLUMNS = ['Orçamento', 'Produção', 'Montagem', 'Concluído'];
 
 export function KanbanBoard() {
-  const [projects, setProjects] = useState<SaleProject[]>(mockProjects);
+  const [projects, setProjects] = useState<SaleProject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProject, setSelectedProject] = useState<SaleProject | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // Formatação monetária (BRL)
-  const formatBRL = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  // Busca inicial
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('sales')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  // Define cor da margem baseada na saúde financeira
-  const getMarginColor = (margin: number) => {
+      if (error) throw error;
+      setProjects(data as SaleProject[]);
+    } catch (err: any) {
+      toast.error('Erro ao buscar projetos', { description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+
+    // Inscrição para Tempo Real do Supabase para o Kanban
+    const salesSubscription = supabase
+      .channel('sales-kanban')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => {
+        fetchProjects(); // Recarrega quando algo muda no banco em tempo real
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(salesSubscription);
+    };
+  }, []);
+
+  const formatBRL = (value: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+
+  // Cálculo Simples de Lucro (Pode ser melhorado em telas detalhadas)
+  const calcEstimatedProfit = (p: SaleProject) => {
+    const total = p.total_value;
+    const costs = p.raw_material_cost + p.freight_cost;
+    const commissions = (total * (p.commission_seller_percent + p.commission_carpenter_percent + p.rt_architect_percent)) / 100;
+    return total - costs - commissions;
+  };
+
+  const getMarginColor = (total: number, profit: number) => {
+    if (total === 0) return 'text-gray-500 bg-gray-50';
+    const margin = (profit / total) * 100;
     if (margin >= 35) return 'text-emerald-600 bg-emerald-50';
     if (margin >= 25) return 'text-amber-600 bg-amber-50';
     return 'text-red-600 bg-red-50';
   };
 
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+
+    const { source, destination, draggableId } = result;
+
+    if (source.droppableId === destination.droppableId) return;
+
+    const oldStatus = source.droppableId;
+    const newStatus = destination.droppableId as any;
+
+    // Otimização Otimista no Cliente Front
+    setProjects((prev: SaleProject[]) => prev.map((p: SaleProject) =>
+      p.id === draggableId ? { ...p, status: newStatus } : p
+    ));
+
+    // Atualiza Status na Nuvem
+    const { error } = await supabase
+      .from('sales')
+      .update({ status: newStatus })
+      .eq('id', draggableId);
+
+    if (error) {
+      toast.error('Erro ao mover projeto', { description: error.message });
+      fetchProjects();
+      return;
+    }
+
+    // ==========================================
+    // BAIXA AUTOMÁTICA DE ESTOQUE (→ Produção)
+    // ==========================================
+    if (newStatus === 'Produção' && oldStatus === 'Orçamento') {
+      // Busca materiais já vinculados a este projeto
+      const { data: linkedMaterials } = await supabase
+        .from('stock_movements')
+        .select('inventory_id, quantity')
+        .eq('sale_id', draggableId)
+        .eq('movement_type', 'OUT');
+
+      if (linkedMaterials && linkedMaterials.length > 0) {
+        toast.success('🏭 Produção iniciada!', {
+          description: `${linkedMaterials.length} material(is) já deduzidos do estoque.`,
+        });
+      } else {
+        toast.info('🏭 Produção iniciada!', {
+          description: 'Nenhum material vinculado. Clique no card para vincular insumos do estoque.',
+        });
+      }
+    }
+
+    // ==========================================
+    // FECHAMENTO DRE (→ Concluído)
+    // ==========================================
+    if (newStatus === 'Concluído') {
+      const project = projects.find((p: SaleProject) => p.id === draggableId);
+      if (project) {
+        // Buscar todas as despesas diretas vinculadas
+        const { data: directExpenses } = await supabase
+          .from('expenses')
+          .select('amount')
+          .eq('sale_id', draggableId)
+          .eq('expense_type', 'Direct');
+
+        const totalDirectExpenses = (directExpenses || []).reduce((s: number, e: any) => s + (e.amount || 0), 0);
+
+        // Custo total real = material + frete + despesas diretas
+        const realCosts = (project.raw_material_cost || 0) + (project.freight_cost || 0) + totalDirectExpenses;
+        const commissions = (project.total_value * ((project.commission_seller_percent || 0) + (project.commission_carpenter_percent || 0) + (project.rt_architect_percent || 0))) / 100;
+        const realProfit = project.total_value - realCosts - commissions;
+        const margin = project.total_value > 0 ? ((realProfit / project.total_value) * 100).toFixed(1) : '0';
+
+        const formatBRLLocal = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+        if (realProfit >= 0) {
+          toast.success('✅ Projeto Concluído com Sucesso!', {
+            description: `Lucro Real: ${formatBRLLocal(realProfit)} (${margin}%). Despesas diretas: ${formatBRLLocal(totalDirectExpenses)}`,
+            duration: 8000,
+          });
+        } else {
+          toast.error('⚠️ Projeto Concluído com PREJUÍZO!', {
+            description: `Prejuízo de ${formatBRLLocal(Math.abs(realProfit))}. Revise os custos deste projeto.`,
+            duration: 10000,
+          });
+        }
+      }
+    }
+
+    // Status genéricos
+    if (newStatus !== 'Produção' && newStatus !== 'Concluído') {
+      toast.info(`Projeto movido para ${newStatus}`);
+    }
+    if (newStatus === 'Montagem') {
+      toast.info('🔧 Montagem iniciada!', { description: 'Projeto em fase de montagem no cliente.' });
+    }
+  };
+
+  if (loading && projects.length === 0) {
+    return <div className="p-8 flex items-center justify-center text-indigo-500 animate-pulse">Carregando seus projetos...</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Kanban de Projetos</h1>
-        <p className="text-gray-500 text-sm mt-1">Acompanhamento e saúde financeira de vendas ativas</p>
+    <div className="bg-transparent h-full flex flex-col">
+      <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Kanban de Projetos</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Acompanhamento e saúde financeira de vendas ativas</p>
+        </div>
+        <div className="flex items-center">
+          <NewSaleDialog onSaleAdded={fetchProjects} />
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {COLUMNS.map((column) => (
-          <div key={column} className="flex flex-col">
-            {/* Header da Coluna */}
-            <div className="flex items-center justify-between bg-white px-4 py-3 border-t-4 border-indigo-600 rounded-t-lg shadow-sm">
-              <h2 className="font-semibold text-gray-800">{column}</h2>
-              <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">
-                {projects.filter(p => p.status === column).length}
-              </span>
-            </div>
-
-            {/* Container de Cards */}
-            <div className="bg-gray-100 flex-1 min-h-[500px] p-3 rounded-b-lg flex flex-col gap-4">
-              {projects.filter(p => p.status === column).map((project) => (
-                <div 
-                  key={project.id} 
-                  className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-4 border border-gray-100 cursor-grab"
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-4">
+          {COLUMNS.map((column) => (
+            <Droppable key={column} droppableId={column}>
+              {(provided, snapshot) => (
+                <div
+                  className={`flex flex-col bg-slate-100/50 dark:bg-zinc-900/50 rounded-xl border-t-4 transition-colors ${snapshot.isDraggingOver ? 'bg-indigo-50 dark:bg-zinc-800 border-indigo-500' : 'border-slate-300 dark:border-zinc-700'}`}
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-medium text-sm text-gray-900 leading-tight">
-                      {project.clientName}
-                    </h3>
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/5">
+                    <h2 className="font-semibold text-slate-800 dark:text-slate-200">{column}</h2>
+                    <span className="bg-white dark:bg-zinc-800 text-slate-600 dark:text-slate-300 text-xs font-bold px-2 py-1 rounded-md shadow-sm border border-black/5 dark:border-white/5">
+                      {projects.filter((p: SaleProject) => p.status === column).length}
+                    </span>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-xs items-center">
-                      <span className="text-gray-500">Valor Total</span>
-                      <span className="font-semibold text-gray-900">{formatBRL(project.totalValue)}</span>
-                    </div>
+                  <div className="flex-1 min-h-[500px] p-2 flex flex-col gap-3">
+                    {projects.filter((p: SaleProject) => p.status === column).map((project: SaleProject, index: number) => {
+                      const profit = calcEstimatedProfit(project);
+                      const marginPercent = project.total_value > 0 ? ((profit / project.total_value) * 100).toFixed(0) : 0;
+                      const balance = project.total_value - project.received_value;
 
-                    <div className="flex justify-between text-xs items-center">
-                      <span className="text-gray-500">A Receber</span>
-                      <span className="font-medium text-orange-600">{formatBRL(project.balanceToReceive)}</span>
-                    </div>
+                      return (
+                        <Draggable key={project.id} draggableId={project.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              onClick={() => {
+                                setSelectedProject(project);
+                                setIsSheetOpen(true);
+                              }}
+                              className={`bg-white dark:bg-zinc-950 rounded-lg shadow-sm p-4 border transition-all ${snapshot.isDragging ? 'shadow-lg border-indigo-500 rotate-2' : 'border-black/5 dark:border-white/5 hover:border-indigo-300'
+                                } cursor-grab active:cursor-grabbing hover:shadow-md`}
+                            >
+                              <div className="flex justify-between items-start mb-3">
+                                <h3 className="font-medium text-sm text-slate-900 dark:text-slate-100 leading-snug">
+                                  {project.client_name}
+                                </h3>
+                              </div>
 
-                    <div className="pt-2 mt-2 border-t border-gray-100 flex justify-between items-center text-xs">
-                      <span className="text-gray-500">Lucro Estimado</span>
-                      <div className={`px-2 py-1 rounded font-bold flex items-center gap-1 ${getMarginColor(project.grossMarginPercent)}`}>
-                        {formatBRL(project.grossProfit)}
-                        <span className="text-[10px] ml-1">({project.grossMarginPercent}%)</span>
-                      </div>
-                    </div>
+                              <div className="space-y-2 mt-4">
+                                <div className="flex justify-between text-xs items-center">
+                                  <span className="text-slate-500 dark:text-slate-400">Valor Total</span>
+                                  <span className="font-semibold text-slate-900 dark:text-slate-200">{formatBRL(project.total_value)}</span>
+                                </div>
+
+                                <div className="flex justify-between text-xs items-center">
+                                  <span className="text-slate-500 dark:text-slate-400">A Receber</span>
+                                  <span className="font-medium text-amber-600 dark:text-amber-500">{formatBRL(balance)}</span>
+                                </div>
+
+                                <div className="pt-2 mt-2 border-t border-slate-100 dark:border-zinc-800 flex justify-between items-center text-xs">
+                                  <span className="text-slate-500 dark:text-slate-400">Lucro Estimado</span>
+                                  <div className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 ${getMarginColor(project.total_value, profit)}`}>
+                                    {formatBRL(profit)}
+                                    <span className="opacity-70">({marginPercent}%)</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      );
+                    })}
+                    {provided.placeholder}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+              )}
+            </Droppable>
+          ))}
+        </div>
+      </DragDropContext>
+
+      {/* Painel Lateral Financeiro do Projeto */}
+      <ProjectDetailsSheet
+        project={selectedProject}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        onUpdated={fetchProjects}
+      />
     </div>
   );
 }
