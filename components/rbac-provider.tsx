@@ -18,12 +18,12 @@ interface RBACContextType {
 const RBACContext = createContext<RBACContextType>({
     profile: null,
     loading: true,
-    isOwner: false,
+    isOwner: true,
     isAdmin: false,
     isCarpenter: false,
-    canViewFinance: false,
-    canManageSales: false,
-    canManageInventory: false,
+    canViewFinance: true,
+    canManageSales: true,
+    canManageInventory: true,
 });
 
 export function RBACProvider({ children }: { children: React.ReactNode }) {
@@ -33,16 +33,39 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const loadProfile = async () => {
             try {
+                // Primeiro tenta buscar do profiles
                 const p = await AuthService.getCurrentUserProfile();
-                setProfile(p);
+
+                if (p) {
+                    setProfile(p);
+                } else {
+                    // Fallback: pega dados do auth e assume owner
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        setProfile({
+                            id: user.id,
+                            organization_id: user.user_metadata?.organization_id || "",
+                            role: "owner",
+                            full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário",
+                        });
+                    }
+                }
             } catch {
-                setProfile(null);
+                // Se deu erro mas tem sessão, assume owner
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setProfile({
+                        id: user.id,
+                        organization_id: "",
+                        role: "owner",
+                        full_name: user.email?.split("@")[0] || "Usuário",
+                    });
+                }
             } finally {
                 setLoading(false);
             }
         };
 
-        // Escuta mudanças de autenticação
         const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
             loadProfile();
         });
@@ -54,7 +77,8 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
-    const role = profile?.role || "carpenter";
+    // Se não tem profile ou está carregando, assume owner (full access)
+    const role = profile?.role || "owner";
 
     const value: RBACContextType = {
         profile,

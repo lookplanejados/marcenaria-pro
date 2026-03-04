@@ -13,6 +13,7 @@ import {
     Hammer,
     Lock,
     Ruler,
+    BarChart3,
 } from "lucide-react";
 
 type MenuItem = {
@@ -28,12 +29,13 @@ export const menuItems: MenuItem[] = [
     { name: "Estoque", href: "/dashboard/inventory", icon: Package, requiredPermission: 'inventory' },
     { name: "CRM (Clientes)", href: "/dashboard/crm", icon: Users, requiredPermission: 'finance' },
     { name: "Arquitetos", href: "/dashboard/architects", icon: Ruler, requiredPermission: 'finance' },
+    { name: "Relatórios", href: "/dashboard/reports", icon: BarChart3, requiredPermission: 'finance' },
     { name: "Configurações", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
-    const { canViewFinance, canManageInventory, isCarpenter, profile } = useRBAC();
+    const { canViewFinance, canManageInventory, isCarpenter, profile, loading } = useRBAC();
 
     const isItemVisible = (item: MenuItem) => {
         if (!item.requiredPermission) return true;
@@ -113,7 +115,7 @@ export function Sidebar({ className }: { className?: string }) {
             <div className="px-6 mt-auto">
                 <div className="p-4 bg-slate-50 dark:bg-zinc-900/50 rounded-lg border border-slate-100 dark:border-zinc-800">
                     <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">
-                        {profile?.full_name || "Carregando..."}
+                        {loading ? "Marcenaria Pro" : (profile?.full_name || "Proprietário")}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                         Plano Profissional

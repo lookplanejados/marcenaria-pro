@@ -94,6 +94,8 @@ export function Header() {
                     {pathname === "/dashboard/inventory" && "Estoque"}
                     {pathname === "/dashboard/crm" && "CRM - Clientes"}
                     {pathname === "/dashboard/architects" && "Arquitetos Parceiros"}
+                    {pathname === "/dashboard/reports" && "Relatórios / DRE"}
+                    {pathname === "/dashboard/profile" && "Meu Perfil"}
                     {pathname === "/dashboard/settings" && "Configurações"}
                 </h1>
             </div>
@@ -143,8 +145,8 @@ export function Header() {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer">Meu Perfil</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">Assinatura</DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/dashboard/profile")}>Meu Perfil</DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/dashboard/settings")}>Configurações</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer dark:text-red-400">
                             <LogOut className="mr-2 h-4 w-4" />

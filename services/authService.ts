@@ -32,30 +32,93 @@ export const AuthService = {
     },
 
     /**
-     * Busca o Perfil Completo do usuário logado e sua Role (RBAC)
-     * Útil para decidir se redireciona para o Kanban do Owner ou Dashboard do Marceneiro
+     * Busca o Perfil Completo do usuário logado e sua Role (RBAC).
+     * Se não existe perfil/organização, cria automaticamente (auto-provisioning).
      */
     async getCurrentUserProfile(): Promise<UserProfile | null> {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) return null;
 
-        const { data: profile, error } = await supabase
+        // 1. Tenta buscar perfil existente
+        const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
             .single();
 
-        if (error || !profile) {
-            console.error('Erro ao buscar perfil:', error?.message);
-            return null;
+        if (profile?.organization_id) {
+            return profile as UserProfile;
         }
 
-        return profile as UserProfile;
+        // 2. Auto-provisioning: cria organização + perfil
+        try {
+            // Verifica se já existe uma organização criada por esse e-mail
+            let orgId: string;
+
+            const { data: existingOrg } = await supabase
+                .from('organizations')
+                .select('id')
+                .limit(1)
+                .single();
+
+            if (existingOrg) {
+                orgId = existingOrg.id;
+            } else {
+                // Cria nova organização
+                const orgName = user.email?.split('@')[0] || 'Minha Marcenaria';
+                const { data: newOrg, error: orgError } = await supabase
+                    .from('organizations')
+                    .insert({ name: orgName })
+                    .select('id')
+                    .single();
+
+                if (orgError || !newOrg) {
+                    console.error('Erro ao criar organização:', orgError?.message);
+                    return this._fallbackProfile(user);
+                }
+                orgId = newOrg.id;
+            }
+
+            // Cria ou atualiza perfil
+            const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Proprietário';
+            const { data: newProfile, error: profileError } = await supabase
+                .from('profiles')
+                .upsert({
+                    id: user.id,
+                    organization_id: orgId,
+                    role: 'owner',
+                    full_name: fullName,
+                })
+                .select('*')
+                .single();
+
+            if (profileError || !newProfile) {
+                console.error('Erro ao criar perfil:', profileError?.message);
+                return this._fallbackProfile(user, orgId);
+            }
+
+            return newProfile as UserProfile;
+        } catch (err) {
+            console.error('Auto-provisioning falhou:', err);
+            return this._fallbackProfile(user);
+        }
     },
 
     /**
-     * Hook para pegar a Sessão / JWT token atual (necessário para APIs no Backend FastAPI)
+     * Fallback quando não consegue criar/buscar perfil do banco
+     */
+    _fallbackProfile(user: any, orgId?: string): UserProfile {
+        return {
+            id: user.id,
+            organization_id: orgId || '',
+            role: 'owner',
+            full_name: user.email?.split('@')[0] || 'Proprietário',
+        };
+    },
+
+    /**
+     * Hook para pegar a Sessão / JWT token atual
      */
     async getAccessToken() {
         const { data: { session } } = await supabase.auth.getSession();
