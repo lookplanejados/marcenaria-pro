@@ -5,6 +5,8 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { supabase } from '@/lib/supabaseClient';
 import { NewSaleDialog } from './new-sale-dialog';
 import { ProjectDetailsSheet } from './project-details-sheet';
+import { AuthService } from '@/services/authService';
+import { useRBAC } from './rbac-provider';
 import { toast } from 'sonner';
 
 type SaleProject = {
@@ -25,6 +27,7 @@ const COLUMNS = ['Orçamento', 'Produção', 'Montagem', 'Concluído'];
 export function KanbanBoard() {
   const [projects, setProjects] = useState<SaleProject[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isCarpenter } = useRBAC();
   const [selectedProject, setSelectedProject] = useState<SaleProject | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
@@ -235,25 +238,36 @@ export function KanbanBoard() {
                                 </h3>
                               </div>
 
-                              <div className="space-y-2 mt-4">
-                                <div className="flex justify-between text-xs items-center">
-                                  <span className="text-slate-500 dark:text-slate-400">Valor Total</span>
-                                  <span className="font-semibold text-slate-900 dark:text-slate-200">{formatBRL(project.total_value)}</span>
-                                </div>
+                              {!isCarpenter && (
+                                <div className="space-y-2 mt-4">
+                                  <div className="flex justify-between text-xs items-center">
+                                    <span className="text-slate-500 dark:text-slate-400">Valor Total</span>
+                                    <span className="font-semibold text-slate-900 dark:text-slate-200">{formatBRL(project.total_value)}</span>
+                                  </div>
 
-                                <div className="flex justify-between text-xs items-center">
-                                  <span className="text-slate-500 dark:text-slate-400">A Receber</span>
-                                  <span className="font-medium text-amber-600 dark:text-amber-500">{formatBRL(balance)}</span>
-                                </div>
+                                  <div className="flex justify-between text-xs items-center">
+                                    <span className="text-slate-500 dark:text-slate-400">A Receber</span>
+                                    <span className="font-medium text-amber-600 dark:text-amber-500">{formatBRL(balance)}</span>
+                                  </div>
 
-                                <div className="pt-2 mt-2 border-t border-slate-100 dark:border-zinc-800 flex justify-between items-center text-xs">
-                                  <span className="text-slate-500 dark:text-slate-400">Lucro Estimado</span>
-                                  <div className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 ${getMarginColor(project.total_value, profit)}`}>
-                                    {formatBRL(profit)}
-                                    <span className="opacity-70">({marginPercent}%)</span>
+                                  <div className="pt-2 mt-2 border-t border-slate-100 dark:border-zinc-800 flex justify-between items-center text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400">Lucro Estimado</span>
+                                    <div className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 ${getMarginColor(project.total_value, profit)}`}>
+                                      {formatBRL(profit)}
+                                      <span className="opacity-70">({marginPercent}%)</span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
+                              )}
+
+                              {isCarpenter && (
+                                <div className="space-y-2 mt-4">
+                                  <div className="flex justify-between text-xs items-center">
+                                    <span className="text-slate-500 dark:text-slate-400">Status</span>
+                                    <span className="font-medium text-indigo-600 dark:text-indigo-500">{project.status}</span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </Draggable>

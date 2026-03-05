@@ -22,7 +22,7 @@ const ACCENT_COLORS = [
 
 export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
-    const { profile, isOwner, isAdmin } = useRBAC();
+    const { profile, isSysadmin, isAdmin } = useRBAC();
 
     const [loading, setLoading] = useState(false);
     const [companyData, setCompanyData] = useState({
@@ -77,7 +77,7 @@ export default function SettingsPage() {
         }
     };
 
-    const isCompanyEditable = isOwner || isAdmin;
+    const isCompanyEditable = isSysadmin || isAdmin;
 
     return (
         <div className="flex flex-col gap-8 max-w-2xl">

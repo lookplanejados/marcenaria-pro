@@ -1,0 +1,372 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRBAC } from "@/components/rbac-provider";
+import { supabase } from "@/lib/supabaseClient";
+import { AuthService } from "@/services/authService";
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
+} from "@/components/ui/dialog";
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { Users, Plus, Edit2, Trash2, Search, KeyRound } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+export default function UsersPage() {
+    const { isSysadmin, isAdmin, profile, loading: rbacLoading } = useRBAC();
+    const router = useRouter();
+
+    const [users, setUsers] = useState<any[]>([]);
+    const [organizations, setOrganizations] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+
+    // Modal state
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [formLoading, setFormLoading] = useState(false);
+
+    // Form fields
+    const [userId, setUserId] = useState<string | null>(null);
+    const [fullName, setFullName] = useState("");
+    const [email, setEmail] = useState("");
+    const [role, setRole] = useState<string>("carpenter");
+    const [orgId, setOrgId] = useState<string>("none");
+    const [password, setPassword] = useState("");
+
+    // Delete flow
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<any>(null);
+
+    useEffect(() => {
+        if (!rbacLoading) {
+            if (!isSysadmin && !isAdmin) {
+                router.push("/dashboard");
+                return;
+            }
+            fetchData();
+        }
+    }, [rbacLoading, isSysadmin, isAdmin, router]);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            await Promise.all([fetchUsers(), isSysadmin ? fetchOrganizations() : null]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchUsers = async () => {
+        try {
+            const token = await AuthService.getAccessToken();
+            const res = await fetch("/api/users", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Erro ao buscar usuários");
+            }
+            const data = await res.json();
+            setUsers(data);
+        } catch (error: any) {
+            toast.error(error.message);
+        }
+    };
+
+    const fetchOrganizations = async () => {
+        const { data } = await supabase.from('organizations').select('id, name').order('name');
+        if (data) setOrganizations(data);
+    };
+
+    const handleOpenCreate = () => {
+        setUserId(null);
+        setFullName("");
+        setEmail("");
+        setPassword("");
+        setRole("carpenter");
+        setOrgId(isSysadmin ? "none" : (profile?.organization_id || "none"));
+        setIsEditing(false);
+        setDialogOpen(true);
+    };
+
+    const handleOpenEdit = (user: any) => {
+        setUserId(user.id);
+        setFullName(user.full_name || "");
+        setEmail(user.email || "");
+        setPassword(""); // Leve em branco para não alterar
+        setRole(user.role || "carpenter");
+        setOrgId(user.organization_id || "none");
+        setIsEditing(true);
+        setDialogOpen(true);
+    };
+
+    const handleSaveUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!fullName || !email || (!isEditing && !password)) {
+            toast.error("Preencha todos os campos obrigatórios.");
+            return;
+        }
+
+        setFormLoading(true);
+        try {
+            const token = await AuthService.getAccessToken();
+            const payload = {
+                id: userId,
+                full_name: fullName,
+                email,
+                role,
+                organization_id: orgId === "none" ? null : orgId,
+                ...(password.trim() ? { password } : {})
+            };
+
+            const method = isEditing ? "PUT" : "POST";
+            const res = await fetch("/api/users", {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Erro ao salvar usuário");
+
+            toast.success(isEditing ? "Usuário atualizado com sucesso!" : "Usuário criado com sucesso!");
+            setDialogOpen(false);
+            fetchUsers();
+
+        } catch (error: any) {
+            toast.error(error.message);
+        } finally {
+            setFormLoading(false);
+        }
+    };
+
+    const handleDeleteClick = (user: any) => {
+        setUserToDelete(user);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!userToDelete) return;
+        try {
+            const token = await AuthService.getAccessToken();
+            const res = await fetch(`/api/users?id=${userToDelete.id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Erro ao excluir usuário");
+            }
+
+            toast.success("Usuário removido com sucesso!");
+            setDeleteDialogOpen(false);
+            fetchUsers();
+        } catch (error: any) {
+            toast.error(error.message);
+        }
+    };
+
+    const getRoleName = (r: string) => {
+        if (r === 'sysadmin') return 'Admin Geral';
+        if (r === 'admin') return 'Admin Marcenaria';
+        return 'Marceneiro';
+    };
+
+    const getRoleColor = (r: string) => {
+        if (r === 'sysadmin') return 'bg-purple-50 text-purple-700 border-purple-200';
+        if (r === 'admin') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+    };
+
+    const filteredUsers = users.filter(u =>
+        (u.full_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (u.email?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+    );
+
+    if (rbacLoading) return <div className="p-8 text-center text-slate-500">Carregando permissões...</div>;
+    if (!isSysadmin && !isAdmin) return null;
+
+    return (
+        <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                        Gestão de Usuários
+                    </h1>
+                    <p className="text-slate-500 mt-2">
+                        {isSysadmin ? "Gerencie os acessos de todo o sistema." : "Gerencie a equipe da sua marcenaria."}
+                    </p>
+                </div>
+                <Button onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 shrink-0">
+                    <Plus className="w-4 h-4 mr-2" /> Novo Usuário
+                </Button>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center gap-4 justify-between bg-slate-50/50">
+                    <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                        <Users className="w-4 h-4 text-indigo-600" />
+                        Lista de Usuários
+                    </h3>
+                    <div className="relative w-full sm:w-72">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <Input
+                            placeholder="Buscar por nome ou e-mail..."
+                            className="pl-9 bg-white"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="p-12 text-center text-slate-400 animate-pulse">Carregando usuários...</div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Nome e E-mail</TableHead>
+                                    <TableHead>Perfil</TableHead>
+                                    <TableHead>Marcenaria (Tenant)</TableHead>
+                                    <TableHead className="text-right">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredUsers.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                                            Nenhum usuário encontrado.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredUsers.map(user => (
+                                        <TableRow key={user.id}>
+                                            <TableCell>
+                                                <div className="font-medium text-slate-900">{user.full_name || "Sem Nome"}</div>
+                                                <div className="text-xs text-slate-500">{user.email || "Sem e-mail"}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className={`text-xs px-2.5 py-0.5 rounded-full border ${getRoleColor(user.role)}`}>
+                                                    {getRoleName(user.role)}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-slate-600">
+                                                {user.organizations?.name || <span className="text-slate-400 italic">Global (Sem restrição)</span>}
+                                            </TableCell>
+                                            <TableCell className="text-right flex items-center justify-end gap-1">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-indigo-600" onClick={() => handleOpenEdit(user)} title="Editar">
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                                {user.id !== profile?.id && (
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-red-600" onClick={() => handleDeleteClick(user)} title="Excluir">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                )}
+            </div>
+
+            {/* Form Modal */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>{isEditing ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
+                        <DialogDescription>
+                            {isEditing ? "Altere as informações de acesso ou permissões deste usuário." : "Crie uma nova conta de acesso para a plataforma."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSaveUser} className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Nome Completo</Label>
+                            <Input placeholder="Ex: João Silva" required value={fullName} onChange={e => setFullName(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Endereço de E-mail</Label>
+                            <Input type="email" placeholder="joao@exemplo.com" required disabled={isEditing} value={email} onChange={e => setEmail(e.target.value)} />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Nível de Acesso (Perfil)</Label>
+                            <Select value={role} onValueChange={setRole}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {isSysadmin && <SelectItem value="sysadmin">Admin Geral (Sysadmin)</SelectItem>}
+                                    <SelectItem value="admin">Admin da Marcenaria</SelectItem>
+                                    <SelectItem value="carpenter">Marceneiro (Padrão)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {isSysadmin && (
+                            <div className="space-y-2">
+                                <Label>Vincular a uma Marcenaria</Label>
+                                <Select value={orgId} onValueChange={setOrgId}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Global (Nenhuma / Sysadmin)</SelectItem>
+                                        {organizations.map(org => (
+                                            <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
+                        <div className="space-y-2 pt-2">
+                            <Label className="flex items-center gap-2">
+                                <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                                {isEditing ? "Nova Senha (deixe em branco para ignorar)" : "Senha Inicial"}
+                            </Label>
+                            <Input type="password" placeholder="******" required={!isEditing} value={password} onChange={e => setPassword(e.target.value)} />
+                        </div>
+
+                        <DialogFooter className="pt-4">
+                            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={formLoading}>Cancelar</Button>
+                            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={formLoading}>
+                                {formLoading ? "Salvando..." : (isEditing ? "Salvar Alterações" : "Criar Usuário")}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="text-red-600">Remover Acesso</DialogTitle>
+                        <DialogDescription>
+                            Você está prestes a excluir a conta de <b>{userToDelete?.full_name}</b>. Isso revogará o acesso dele ao sistema e não pode ser desfeito. Deseja continuar?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-4">
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
+                        <Button variant="destructive" onClick={confirmDelete}>Sim, Excluir Usuário</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+        </div>
+    );
+}

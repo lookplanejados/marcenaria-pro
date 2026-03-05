@@ -8,16 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AuthService } from "@/services/authService";
 import { AlertCircle, Lock } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
-import { toast } from "sonner";
 
 export default function LoginPage() {
     const router = useRouter();
-    const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [fullName, setFullName] = useState("");
-    const [orgName, setOrgName] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
@@ -27,28 +22,9 @@ export default function LoginPage() {
         setErrorMsg("");
 
         try {
-            if (isLogin) {
-                // Fluxo de Login
-                await AuthService.login(email, password);
-                router.push("/dashboard");
-            } else {
-                // Fluxo de Registro Simplificado (Cria a Empresa e o Admin Local)
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                });
-
-                if (error) throw error;
-
-                // Pós Cadastro nós teríamos que criar a organization e o profile via Server Action ou Função normal
-                // Como o banco bloqueia inserts sem trigger RLS de admin puro, a gente avisa que o Auth deu certo
-                // Na vida real você teria um Trigger no Postgres pós Auth.signup que criaria "organizations".
-
-                toast.success("Conta registrada com sucesso!", {
-                    description: "Seu ambiente virtual da marcenaria foi provisionado.",
-                });
-                setIsLogin(true);
-            }
+            // Fluxo de Login
+            await AuthService.login(email, password);
+            router.push("/dashboard");
         } catch (err: any) {
             let msg = err.message || "Ocorreu um erro ao processar a autenticação.";
 
@@ -82,7 +58,7 @@ export default function LoginPage() {
                     </p>
                     <CardTitle className="text-2xl font-bold text-center">Marcenaria Pro</CardTitle>
                     <CardDescription className="text-center">
-                        {isLogin ? "Acesse o painel do administrador" : "Crie uma instância para sua marcenaria"}
+                        Acesse o sistema com suas credenciais
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -92,31 +68,6 @@ export default function LoginPage() {
                                 <AlertCircle className="h-4 w-4 mr-2" />
                                 {errorMsg}
                             </div>
-                        )}
-
-                        {!isLogin && (
-                            <>
-                                <div className="space-y-2">
-                                    <Label htmlFor="orgName">Nome da Marcenaria</Label>
-                                    <Input
-                                        id="orgName"
-                                        placeholder="Ex: Look Planejados"
-                                        value={orgName}
-                                        onChange={e => setOrgName(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="fullName">Seu Nome Completo</Label>
-                                    <Input
-                                        id="fullName"
-                                        placeholder="Ex: João Silva"
-                                        value={fullName}
-                                        onChange={e => setFullName(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            </>
                         )}
 
                         <div className="space-y-2">
@@ -134,7 +85,7 @@ export default function LoginPage() {
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="password">Senha</Label>
-                                {isLogin && <a href="#" className="text-xs text-indigo-600 font-medium hover:underline">Esqueceu a senha?</a>}
+                                <a href="#" className="text-xs text-indigo-600 font-medium hover:underline">Esqueceu a senha?</a>
                             </div>
                             <Input
                                 id="password"
@@ -146,22 +97,10 @@ export default function LoginPage() {
                         </div>
 
                         <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={loading}>
-                            {loading ? "Processando..." : (isLogin ? "Entrar Seguramente" : "Criar Minha Conta")}
+                            {loading ? "Processando..." : "Entrar Seguramente"}
                         </Button>
                     </form>
                 </CardContent>
-                <CardFooter className="flex justify-center border-t p-4 px-6 bg-gray-50/50">
-                    <p className="text-sm text-gray-600">
-                        {isLogin ? "Ainda não tem uma conta?" : "Já possui conta?"}
-                        <button
-                            type="button"
-                            onClick={() => setIsLogin(!isLogin)}
-                            className="ml-1 text-indigo-600 font-semibold hover:underline"
-                        >
-                            {isLogin ? "Cadastre-se" : "Faça Login"}
-                        </button>
-                    </p>
-                </CardFooter>
             </Card>
         </div>
     );

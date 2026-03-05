@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 interface RBACContextType {
     profile: UserProfile | null;
     loading: boolean;
-    isOwner: boolean;
+    isSysadmin: boolean;
     isAdmin: boolean;
     isCarpenter: boolean;
     canViewFinance: boolean;
@@ -18,12 +18,12 @@ interface RBACContextType {
 const RBACContext = createContext<RBACContextType>({
     profile: null,
     loading: true,
-    isOwner: true,
+    isSysadmin: false,
     isAdmin: false,
     isCarpenter: false,
-    canViewFinance: true,
-    canManageSales: true,
-    canManageInventory: true,
+    canViewFinance: false,
+    canManageSales: false,
+    canManageInventory: false,
 });
 
 export function RBACProvider({ children }: { children: React.ReactNode }) {
@@ -39,25 +39,25 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
                 if (p) {
                     setProfile(p);
                 } else {
-                    // Fallback: pega dados do auth e assume owner
+                    // Fallback: pega dados do auth e assume permissão mínima (ou admin se for logado)
                     const { data: { user } } = await supabase.auth.getUser();
                     if (user) {
                         setProfile({
                             id: user.id,
                             organization_id: user.user_metadata?.organization_id || "",
-                            role: "owner",
+                            role: "carpenter",
                             full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário",
                         });
                     }
                 }
             } catch {
-                // Se deu erro mas tem sessão, assume owner
+                // Se deu erro mas tem sessão, assume carpenter para não liberar acessos extras à toa
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     setProfile({
                         id: user.id,
                         organization_id: "",
-                        role: "owner",
+                        role: "carpenter",
                         full_name: user.email?.split("@")[0] || "Usuário",
                     });
                 }
@@ -77,18 +77,18 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
-    // Se não tem profile ou está carregando, assume owner (full access)
-    const role = profile?.role || "owner";
+    // Se não tem profile ou está carregando, assume restrito (carpenter) até carregar
+    const role = profile?.role || "carpenter";
 
     const value: RBACContextType = {
         profile,
         loading,
-        isOwner: role === "owner",
+        isSysadmin: role === "sysadmin",
         isAdmin: role === "admin",
         isCarpenter: role === "carpenter",
-        canViewFinance: role === "owner" || role === "admin",
-        canManageSales: role === "owner" || role === "admin",
-        canManageInventory: role === "owner" || role === "admin",
+        canViewFinance: role === "sysadmin" || role === "admin",
+        canManageSales: role === "sysadmin" || role === "admin",
+        canManageInventory: role === "sysadmin" || role === "admin",
     };
 
     return <RBACContext.Provider value={value}>{children}</RBACContext.Provider>;

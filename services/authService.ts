@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 
-export type UserRole = 'admin' | 'owner' | 'carpenter';
+export type UserRole = 'sysadmin' | 'admin' | 'carpenter';
 
 export interface UserProfile {
     id: string;
@@ -47,73 +47,24 @@ export const AuthService = {
             .eq('id', user.id)
             .single();
 
-        if (profile?.organization_id) {
+        if (profile) {
             return profile as UserProfile;
         }
 
-        // 2. Auto-provisioning: cria organização + perfil
-        try {
-            // Verifica se já existe uma organização criada por esse e-mail
-            let orgId: string;
-
-            const { data: existingOrg } = await supabase
-                .from('organizations')
-                .select('id')
-                .limit(1)
-                .single();
-
-            if (existingOrg) {
-                orgId = existingOrg.id;
-            } else {
-                // Cria nova organização
-                const orgName = user.email?.split('@')[0] || 'Minha Marcenaria';
-                const { data: newOrg, error: orgError } = await supabase
-                    .from('organizations')
-                    .insert({ name: orgName })
-                    .select('id')
-                    .single();
-
-                if (orgError || !newOrg) {
-                    console.error('Erro ao criar organização:', orgError?.message);
-                    return this._fallbackProfile(user);
-                }
-                orgId = newOrg.id;
-            }
-
-            // Cria ou atualiza perfil
-            const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Proprietário';
-            const { data: newProfile, error: profileError } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: user.id,
-                    organization_id: orgId,
-                    role: 'owner',
-                    full_name: fullName,
-                })
-                .select('*')
-                .single();
-
-            if (profileError || !newProfile) {
-                console.error('Erro ao criar perfil:', profileError?.message);
-                return this._fallbackProfile(user, orgId);
-            }
-
-            return newProfile as UserProfile;
-        } catch (err) {
-            console.error('Auto-provisioning falhou:', err);
-            return this._fallbackProfile(user);
-        }
+        // Se o perfil não foi retornado do public.profiles, usamos o fallback da sessão.
+        // O sysadmin será responsável por cadastrar a conta na base corretamente.
+        return this._fallbackProfile(user);
     },
 
     /**
-     * Fallback quando não consegue criar/buscar perfil do banco
+     * Fallback quando não consegue buscar perfil do banco
      */
     _fallbackProfile(user: any, orgId?: string): UserProfile {
         return {
             id: user.id,
             organization_id: orgId || '',
-            role: 'owner',
-            full_name: user.email?.split('@')[0] || 'Proprietário',
+            role: 'sysadmin', // Default de fallback para evitar quebrar componentes visuais. O DB barreira por RLS.
+            full_name: user.email?.split('@')[0] || 'Usuário',
         };
     },
 

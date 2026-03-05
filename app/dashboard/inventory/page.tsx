@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/table";
 import { AuthService } from "@/services/authService";
 import { Plus, Package, Layers, Search } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Trash2 } from "lucide-react";
 
 type InventoryItem = {
     id: string;
@@ -57,6 +59,7 @@ export default function InventoryPage() {
     const [thickness, setThickness] = useState("");
     const [quantity, setQuantity] = useState("");
     const [costPerUnit, setCostPerUnit] = useState("");
+    const [generateExpense, setGenerateExpense] = useState(false);
 
     const fetchItems = async () => {
         try {
@@ -86,17 +89,33 @@ export default function InventoryPage() {
 
             const unitCost = parseFloat(costPerUnit.replace(/\D/g, "")) / 100 || 0;
 
+            const parsedQuantity = parseFloat(quantity) || 0;
             const { error } = await supabase.from("inventory").insert({
                 organization_id: profile.organization_id,
                 category,
                 brand,
                 name_or_color: nameOrColor,
                 thickness: category === "MDF" ? parseFloat(thickness) || null : null,
-                quantity: parseFloat(quantity) || 0,
+                quantity: parsedQuantity,
                 cost_per_unit: unitCost,
             });
 
             if (error) throw error;
+
+            if (generateExpense && unitCost > 0 && parsedQuantity > 0) {
+                const totalCost = parsedQuantity * unitCost;
+                const { error: expError } = await supabase.from("expenses").insert({
+                    organization_id: profile.organization_id,
+                    description: `Compra de Estoque: ${category} - ${brand} ${nameOrColor}`,
+                    amount: totalCost,
+                    expense_type: "Fixed", // Despesas gerais de estoque (Fixed cost)
+                    date_incurred: new Date().toISOString().split("T")[0],
+                });
+
+                if (expError) {
+                    toast.error("Estoque adicionado, mas falhou ao gerar despesa.", { description: expError.message });
+                }
+            }
 
             toast.success("Item adicionado ao estoque!");
             setDialogOpen(false);
@@ -105,11 +124,25 @@ export default function InventoryPage() {
             setThickness("");
             setQuantity("");
             setCostPerUnit("");
+            setGenerateExpense(false);
             fetchItems();
         } catch (err: any) {
             toast.error("Erro ao salvar", { description: err.message });
         } finally {
             setFormLoading(false);
+        }
+    };
+
+    const handleDelete = async (id: string, name: string) => {
+        if (!confirm(`Tem certeza que deseja excluir '${name}' do estoque?`)) return;
+
+        try {
+            const { error } = await supabase.from("inventory").delete().eq("id", id);
+            if (error) throw error;
+            toast.success("Item excluído com sucesso!");
+            fetchItems();
+        } catch (err: any) {
+            toast.error("Erro ao excluir", { description: err.message });
         }
     };
 
@@ -191,6 +224,12 @@ export default function InventoryPage() {
                                     <Input placeholder="R$ 0,00" value={costPerUnit} onChange={handleFormatCost} />
                                 </div>
                             </div>
+                            <div className="flex items-center space-x-2 pt-2 border-t border-slate-100 dark:border-zinc-800">
+                                <Checkbox id="genExpense" checked={generateExpense} onCheckedChange={(c) => setGenerateExpense(!!c)} />
+                                <Label htmlFor="genExpense" className="text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
+                                    Lançar entrada no Financeiro (Despesas)
+                                </Label>
+                            </div>
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
@@ -256,6 +295,7 @@ export default function InventoryPage() {
                                 <TableHead className="text-right">Qtd</TableHead>
                                 <TableHead className="text-right">Custo Unit.</TableHead>
                                 <TableHead className="text-right">Subtotal</TableHead>
+                                <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -272,6 +312,11 @@ export default function InventoryPage() {
                                     <TableCell className="text-right font-semibold">{item.quantity}</TableCell>
                                     <TableCell className="text-right text-slate-500">{formatBRL(item.cost_per_unit)}</TableCell>
                                     <TableCell className="text-right font-semibold text-indigo-600">{formatBRL(item.quantity * item.cost_per_unit)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-500" onClick={() => handleDelete(item.id, item.name_or_color)}>
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

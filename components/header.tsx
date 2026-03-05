@@ -140,7 +140,7 @@ export function Header() {
                             <div className="flex flex-col space-y-1">
                                 <p className="text-sm font-medium leading-none text-slate-900 dark:text-slate-100">{profile?.full_name || "Carregando..."}</p>
                                 <p className="text-xs leading-none text-slate-500 dark:text-slate-400">
-                                    {profile?.role === 'owner' ? 'Proprietário' : profile?.role === 'admin' ? 'Administrador' : 'Marceneiro'}
+                                    {profile?.role === 'sysadmin' ? 'Admin Geral' : profile?.role === 'admin' ? 'Administrador' : 'Marceneiro'}
                                 </p>
                             </div>
                         </DropdownMenuLabel>

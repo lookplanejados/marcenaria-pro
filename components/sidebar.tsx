@@ -14,17 +14,21 @@ import {
     Lock,
     Ruler,
     BarChart3,
+    Building2,
 } from "lucide-react";
 
 type MenuItem = {
     name: string;
     href: string;
     icon: any;
-    requiredPermission?: 'finance' | 'sales' | 'inventory';
+    requiredPermission?: 'sysadmin' | 'admin' | 'finance' | 'sales' | 'inventory';
 };
 
 export const menuItems: MenuItem[] = [
+    { name: "Painel de Controle", href: "/dashboard/admin", icon: LayoutDashboard, requiredPermission: 'sysadmin' },
+    { name: "Marcenarias", href: "/dashboard/organizations", icon: Building2, requiredPermission: 'sysadmin' },
     { name: "Kanban (Projetos)", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Usuários", href: "/dashboard/users", icon: Users, requiredPermission: 'admin' },
     { name: "Financeiro", href: "/dashboard/finance", icon: Wallet, requiredPermission: 'finance' },
     { name: "Estoque", href: "/dashboard/inventory", icon: Package, requiredPermission: 'inventory' },
     { name: "CRM (Clientes)", href: "/dashboard/crm", icon: Users, requiredPermission: 'finance' },
@@ -35,9 +39,19 @@ export const menuItems: MenuItem[] = [
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
-    const { canViewFinance, canManageInventory, isCarpenter, profile, loading } = useRBAC();
+    const { canViewFinance, canManageInventory, isSysadmin, isAdmin, isCarpenter, profile, loading } = useRBAC();
 
     const isItemVisible = (item: MenuItem) => {
+        // Regra estrita para Admin Geral do Sistema: só vê os 4 módulos essenciais
+        if (isSysadmin) {
+            const allowedForSysadmin = ["/dashboard/admin", "/dashboard/organizations", "/dashboard/users", "/dashboard/settings"];
+            return allowedForSysadmin.includes(item.href);
+        }
+
+        // Regras para Admin da Marcenaria e Marceneiro
+        if (item.requiredPermission === 'sysadmin') return false; // Ninguém além do sysadmin vê marcenarias
+        if (item.requiredPermission === 'admin') return isAdmin; // Apenas admin gerencia usuários localmente (o sysadmin já caiu no if acima)
+
         if (!item.requiredPermission) return true;
         if (item.requiredPermission === 'finance') return canViewFinance;
         if (item.requiredPermission === 'inventory') return canManageInventory;
@@ -49,8 +63,8 @@ export function Sidebar({ className }: { className?: string }) {
     const getRoleBadge = () => {
         if (!profile) return null;
         const roleMap: Record<string, { label: string; color: string }> = {
-            owner: { label: "Proprietário", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" },
-            admin: { label: "Administrador", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+            sysadmin: { label: "Admin Geral", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+            admin: { label: "Admin", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
             carpenter: { label: "Marceneiro", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
         };
         const role = roleMap[profile.role] || roleMap.carpenter;
