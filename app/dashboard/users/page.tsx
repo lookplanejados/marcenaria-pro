@@ -28,6 +28,8 @@ export default function UsersPage() {
     const [organizations, setOrganizations] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [filterRole, setFilterRole] = useState("all");
+    const [filterOrg, setFilterOrg] = useState("all");
 
     // Modal state
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -192,10 +194,13 @@ export default function UsersPage() {
         return 'bg-amber-50 text-amber-700 border-amber-200';
     };
 
-    const filteredUsers = users.filter(u =>
-        (u.full_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-        (u.email?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users.filter(u => {
+        const matchesSearch = (u.full_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+            (u.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+        const matchesRole = filterRole === "all" || u.role === filterRole;
+        const matchesOrg = filterOrg === "all" || u.organization_id === filterOrg || (!u.organization_id && filterOrg === "none");
+        return matchesSearch && matchesRole && matchesOrg;
+    });
 
     if (rbacLoading) return <div className="p-8 text-center text-slate-500">Carregando permissões...</div>;
     if (!isSysadmin && !isAdmin) return null;
@@ -207,9 +212,6 @@ export default function UsersPage() {
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                         Gestão de Usuários
                     </h1>
-                    <p className="text-slate-500 mt-2">
-                        {isSysadmin ? "Gerencie os acessos de todo o sistema." : "Gerencie a equipe da sua marcenaria."}
-                    </p>
                 </div>
                 <Button onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 shrink-0">
                     <Plus className="w-4 h-4 mr-2" /> Novo Usuário
@@ -217,19 +219,38 @@ export default function UsersPage() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center gap-4 justify-between bg-slate-50/50">
-                    <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-                        <Users className="w-4 h-4 text-indigo-600" />
-                        Lista de Usuários
-                    </h3>
-                    <div className="relative w-full sm:w-72">
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                        <Input
-                            placeholder="Buscar por nome ou e-mail..."
-                            className="pl-9 bg-white"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                <div className="p-4 border-b border-slate-200 bg-slate-50/50">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                            <Input
+                                placeholder="Buscar por nome ou e-mail..."
+                                className="pl-9 bg-white"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <Select value={filterRole} onValueChange={setFilterRole}>
+                            <SelectTrigger className="w-full sm:w-48 bg-white"><SelectValue placeholder="Perfil" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos os Perfis</SelectItem>
+                                {isSysadmin && <SelectItem value="sysadmin">Admin Geral</SelectItem>}
+                                <SelectItem value="admin">Admin Marcenaria</SelectItem>
+                                <SelectItem value="carpenter">Marceneiro</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {isSysadmin && (
+                            <Select value={filterOrg} onValueChange={setFilterOrg}>
+                                <SelectTrigger className="w-full sm:w-56 bg-white"><SelectValue placeholder="Marcenaria" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas as Marcenarias</SelectItem>
+                                    <SelectItem value="none">Global (Sem restrição)</SelectItem>
+                                    {organizations.map(org => (
+                                        <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
                 </div>
 
