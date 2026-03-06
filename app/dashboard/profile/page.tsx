@@ -66,6 +66,11 @@ export default function ProfilePage() {
     };
 
     const roleLabels: Record<string, { label: string; color: string; desc: string }> = {
+        sysadmin: {
+            label: "Admin Geral",
+            color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+            desc: "Acesso e gerenciamento global do sistema. Controle completo sobre todas as organizações e funções.",
+        },
         owner: {
             label: "Proprietário",
             color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
@@ -74,7 +79,7 @@ export default function ProfilePage() {
         admin: {
             label: "Administrador",
             color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-            desc: "Acesso a todos os módulos. Pode gerenciar usuários e configurações.",
+            desc: "Acesso a todos os módulos. Pode gerenciar usuários e configurações dentro de sua organização.",
         },
         carpenter: {
             label: "Marceneiro",
@@ -102,10 +107,10 @@ export default function ProfilePage() {
                         </span>
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{fullName || "Proprietário"}</h2>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{fullName || "Usuário"}</h2>
                         <p className="text-xs text-slate-400">{email}</p>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${currentRole.color}`}>
-                            {currentRole.label}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${currentRole?.color || "bg-slate-100 text-slate-700"}`}>
+                            {currentRole?.label || "Perfil Desconhecido"}
                         </span>
                     </div>
                 </div>
@@ -114,8 +119,8 @@ export default function ProfilePage() {
                 <div className="bg-slate-50 dark:bg-zinc-900 rounded-lg p-3 flex items-start gap-3">
                     <Shield className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
                     <div>
-                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nível de Acesso: {currentRole.label}</p>
-                        <p className="text-[10px] text-slate-500">{currentRole.desc}</p>
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nível de Acesso: {currentRole?.label || "N/A"}</p>
+                        <p className="text-[10px] text-slate-500">{currentRole?.desc || "Não foi possível carregar as propriedades deste perfil."}</p>
                     </div>
                 </div>
 
