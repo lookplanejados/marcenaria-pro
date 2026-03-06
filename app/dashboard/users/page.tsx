@@ -235,33 +235,33 @@ export default function UsersPage() {
 
     return (
         <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                        Gestão de Usuários
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+                        Usuários
                     </h1>
                 </div>
-                <Button onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 shrink-0">
-                    <Plus className="w-4 h-4 mr-2" /> Novo Usuário
+                <Button onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 h-9 shrink-0 gap-2">
+                    <Plus className="w-4 h-4" /> Novo Usuário
                 </Button>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-4 border-b border-slate-200 bg-slate-50/50">
+            <div className="bg-white rounded-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-slate-200 overflow-hidden">
+                <div className="p-4 border-b border-slate-100">
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
                             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                             <Input
-                                placeholder="Buscar por nome ou e-mail..."
-                                className="pl-9 bg-white"
+                                placeholder="Buscar usuário..."
+                                className="pl-9 h-9 border-slate-200 shadow-sm"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <Select value={filterRole} onValueChange={setFilterRole}>
-                            <SelectTrigger className="w-full sm:w-48 bg-white"><SelectValue placeholder="Perfil" /></SelectTrigger>
+                            <SelectTrigger className="w-full sm:w-40 h-9 bg-white border-slate-200 shadow-sm"><SelectValue placeholder="Perfil" /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Todos os Perfis</SelectItem>
+                                <SelectItem value="all">Filtro: Perfis</SelectItem>
                                 {isSysadmin && <SelectItem value="sysadmin">Admin Geral</SelectItem>}
                                 <SelectItem value="admin">Admin Marcenaria</SelectItem>
                                 <SelectItem value="carpenter">Marceneiro</SelectItem>
@@ -269,10 +269,10 @@ export default function UsersPage() {
                         </Select>
                         {isSysadmin && (
                             <Select value={filterOrg} onValueChange={setFilterOrg}>
-                                <SelectTrigger className="w-full sm:w-56 bg-white"><SelectValue placeholder="Marcenaria" /></SelectTrigger>
+                                <SelectTrigger className="w-full sm:w-48 h-9 bg-white border-slate-200 shadow-sm"><SelectValue placeholder="Marcenaria" /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todas as Marcenarias</SelectItem>
-                                    <SelectItem value="none">Global (Sem restrição)</SelectItem>
+                                    <SelectItem value="all">Filtro: Marcenarias</SelectItem>
+                                    <SelectItem value="none">Time Global</SelectItem>
                                     {organizations.map(org => (
                                         <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
                                     ))}
@@ -347,33 +347,31 @@ export default function UsersPage() {
             {/* Form Modal */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{isEditing ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
-                        <DialogDescription>
-                            {isEditing ? "Altere as informações de acesso ou permissões deste usuário." : "Crie uma nova conta de acesso para a plataforma."}
-                        </DialogDescription>
+                    <DialogHeader className="pb-2 border-b border-slate-100">
+                        <DialogTitle className="text-xl font-semibold text-slate-800">
+                            {isEditing ? "Editar Usuário" : "Novo Usuário"}
+                        </DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSaveUser} className="space-y-6 py-4">
 
                         {/* Seção Principal */}
-                        <div className="space-y-4 rounded-lg bg-slate-50/50 border border-slate-100 p-4">
-                            <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                                <KeyRound className="w-4 h-4 text-indigo-500" />
+                        <div className="space-y-4 mb-6">
+                            <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">
                                 Dados de Acesso
                             </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Endereço de E-mail</Label>
-                                    <Input type="email" placeholder="email@exemplo.com" required disabled={isEditing} value={email} onChange={e => setEmail(e.target.value)} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-600">Endereço de E-mail</Label>
+                                    <Input type="email" placeholder="email@exemplo.com" required disabled={isEditing} value={email} onChange={e => setEmail(e.target.value)} className="h-9" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>{isEditing ? "Nova Senha (Opcional)" : "Senha Inicial"}</Label>
-                                    <Input type="password" placeholder="******" required={!isEditing} value={password} onChange={e => setPassword(e.target.value)} />
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-600">{isEditing ? "Nova Senha (Opcional)" : "Senha Inicial"}</Label>
+                                    <Input type="password" placeholder="******" required={!isEditing} value={password} onChange={e => setPassword(e.target.value)} className="h-9" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Nível de Acesso (Perfil)</Label>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-600">Nível de Acesso (Perfil)</Label>
                                     <Select value={role} onValueChange={setRole}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             {isSysadmin && <SelectItem value="sysadmin">Admin Geral (Sysadmin)</SelectItem>}
                                             <SelectItem value="admin">Admin da Marcenaria</SelectItem>
@@ -382,10 +380,10 @@ export default function UsersPage() {
                                     </Select>
                                 </div>
                                 {isSysadmin && (
-                                    <div className="space-y-2">
-                                        <Label>Vincular a uma Marcenaria</Label>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-slate-600">Vincular a uma Marcenaria</Label>
                                         <Select value={orgId} onValueChange={setOrgId}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="none">Global (Nenhuma / Sysadmin)</SelectItem>
                                                 {organizations.map(org => (
@@ -399,17 +397,16 @@ export default function UsersPage() {
                         </div>
 
                         {/* Seção Pessoal */}
-                        <div className="space-y-4 rounded-lg border border-slate-200 p-4">
-                            <h4 className="text-sm font-semibold text-slate-800 flex items-center justify-between">
-                                <span className="flex items-center gap-2">
-                                    <Users className="w-4 h-4 text-slate-500" />
-                                    Informações Pessoais
-                                </span>
+                        <div className="space-y-4 pt-4 border-t border-slate-100">
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                    Informações do Usuário
+                                </h4>
                                 {isEditing && (
                                     <div className="flex items-center gap-2">
-                                        <span className={`text-xs font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-500'}`}>Status:</span>
+                                        <span className={`text-[10px] font-semibold uppercase tracking-wider ${isActive ? 'text-emerald-500' : 'text-slate-400'}`}>Status:</span>
                                         <Select value={isActive ? "active" : "inactive"} onValueChange={(v) => setIsActive(v === "active")}>
-                                            <SelectTrigger className="w-[120px] h-7 text-xs bg-white"><SelectValue /></SelectTrigger>
+                                            <SelectTrigger className="w-[100px] h-7 text-xs bg-slate-50 border-slate-200"><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="active">Ativo</SelectItem>
                                                 <SelectItem value="inactive">Inativo</SelectItem>
@@ -417,37 +414,37 @@ export default function UsersPage() {
                                         </Select>
                                     </div>
                                 )}
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Nome Completo</Label>
-                                    <Input placeholder="Ex: João Silva" required value={fullName} onChange={e => setFullName(e.target.value)} />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-600">Nome Completo</Label>
+                                    <Input placeholder="Ex: João Silva" required value={fullName} onChange={e => setFullName(e.target.value)} className="h-9" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>CPF</Label>
-                                    <Input placeholder="000.000.000-00" value={cpf} onChange={e => setCpf(e.target.value)} />
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-600">CPF</Label>
+                                    <Input placeholder="000.000.000-00" value={cpf} onChange={e => setCpf(e.target.value)} className="h-9" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Telefone / WhatsApp</Label>
-                                    <Input placeholder="(00) 00000-0000" value={phone} onChange={e => setPhone(e.target.value)} />
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-600">Telefone / WhatsApp</Label>
+                                    <Input placeholder="(00) 00000-0000" value={phone} onChange={e => setPhone(e.target.value)} className="h-9" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Cidade</Label>
-                                    <Input placeholder="Ex: São Paulo" value={city} onChange={e => setCity(e.target.value)} />
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-slate-600">Cidade</Label>
+                                    <Input placeholder="Ex: São Paulo" value={city} onChange={e => setCity(e.target.value)} className="h-9" />
                                 </div>
-                                <div className="space-y-2 md:col-span-2 flex gap-4">
-                                    <div className="flex-1 space-y-2">
-                                        <Label>Endereço Completo</Label>
-                                        <Input placeholder="Rua, Número, Bairro" value={address} onChange={e => setAddress(e.target.value)} />
+                                <div className="space-y-1.5 md:col-span-2 flex gap-4">
+                                    <div className="flex-1 space-y-1.5">
+                                        <Label className="text-xs text-slate-600">Endereço Completo</Label>
+                                        <Input placeholder="Rua, Número, Bairro" value={address} onChange={e => setAddress(e.target.value)} className="h-9" />
                                     </div>
-                                    <div className="w-24 space-y-2">
-                                        <Label>UF</Label>
-                                        <Input placeholder="SP" maxLength={2} className="uppercase" value={stateLocation} onChange={e => setStateLocation(e.target.value.toUpperCase())} />
+                                    <div className="w-24 space-y-1.5">
+                                        <Label className="text-xs text-slate-600">UF</Label>
+                                        <Input placeholder="SP" maxLength={2} className="uppercase h-9 text-center" value={stateLocation} onChange={e => setStateLocation(e.target.value.toUpperCase())} />
                                     </div>
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Observações</Label>
-                                    <Input placeholder="Anotações internas sobre este usuário..." value={notes} onChange={e => setNotes(e.target.value)} />
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <Label className="text-xs text-slate-600">Observações</Label>
+                                    <Input placeholder="Anotações internas sobre este usuário..." value={notes} onChange={e => setNotes(e.target.value)} className="h-9" />
                                 </div>
                             </div>
                         </div>
