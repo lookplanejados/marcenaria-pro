@@ -43,6 +43,13 @@ export default function UsersPage() {
     const [role, setRole] = useState<string>("carpenter");
     const [orgId, setOrgId] = useState<string>("none");
     const [password, setPassword] = useState("");
+    const [address, setAddress] = useState("");
+    const [city, setCity] = useState("");
+    const [stateLocation, setStateLocation] = useState("");
+    const [cpf, setCpf] = useState("");
+    const [phone, setPhone] = useState("");
+    const [notes, setNotes] = useState("");
+    const [isActive, setIsActive] = useState(true);
 
     // Delete flow
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -96,6 +103,13 @@ export default function UsersPage() {
         setPassword("");
         setRole("carpenter");
         setOrgId(isSysadmin ? "none" : (profile?.organization_id || "none"));
+        setAddress("");
+        setCity("");
+        setStateLocation("");
+        setCpf("");
+        setPhone("");
+        setNotes("");
+        setIsActive(true);
         setIsEditing(false);
         setDialogOpen(true);
     };
@@ -107,6 +121,13 @@ export default function UsersPage() {
         setPassword(""); // Leve em branco para não alterar
         setRole(user.role || "carpenter");
         setOrgId(user.organization_id || "none");
+        setAddress(user.address || "");
+        setCity(user.city || "");
+        setStateLocation(user.state || "");
+        setCpf(user.cpf || "");
+        setPhone(user.phone || "");
+        setNotes(user.notes || "");
+        setIsActive(user.is_active !== false); // Se undefined/null assume true
         setIsEditing(true);
         setDialogOpen(true);
     };
@@ -128,6 +149,13 @@ export default function UsersPage() {
                 email,
                 role,
                 organization_id: orgId === "none" ? null : orgId,
+                address,
+                city,
+                state: stateLocation,
+                cpf,
+                phone,
+                notes,
+                is_active: isActive,
                 ...(password.trim() ? { password } : {})
             };
 
@@ -263,6 +291,7 @@ export default function UsersPage() {
                                 <TableRow>
                                     <TableHead>Nome e E-mail</TableHead>
                                     <TableHead>Perfil</TableHead>
+                                    <TableHead>Status</TableHead>
                                     <TableHead>Marcenaria (Tenant)</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
@@ -285,6 +314,13 @@ export default function UsersPage() {
                                                 <span className={`text-xs px-2.5 py-0.5 rounded-full border ${getRoleColor(user.role)}`}>
                                                     {getRoleName(user.role)}
                                                 </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                {user.is_active !== false ? (
+                                                    <span className="text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">Ativo</span>
+                                                ) : (
+                                                    <span className="text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">Inativo</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-slate-600">
                                                 {user.organizations?.name || <span className="text-slate-400 italic">Global (Sem restrição)</span>}
@@ -310,59 +346,113 @@ export default function UsersPage() {
 
             {/* Form Modal */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{isEditing ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
                         <DialogDescription>
                             {isEditing ? "Altere as informações de acesso ou permissões deste usuário." : "Crie uma nova conta de acesso para a plataforma."}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSaveUser} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Nome Completo</Label>
-                            <Input placeholder="Ex: João Silva" required value={fullName} onChange={e => setFullName(e.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Endereço de E-mail</Label>
-                            <Input type="email" placeholder="joao@exemplo.com" required disabled={isEditing} value={email} onChange={e => setEmail(e.target.value)} />
-                        </div>
+                    <form onSubmit={handleSaveUser} className="space-y-6 py-4">
 
-                        <div className="space-y-2">
-                            <Label>Nível de Acesso (Perfil)</Label>
-                            <Select value={role} onValueChange={setRole}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {isSysadmin && <SelectItem value="sysadmin">Admin Geral (Sysadmin)</SelectItem>}
-                                    <SelectItem value="admin">Admin da Marcenaria</SelectItem>
-                                    <SelectItem value="carpenter">Marceneiro (Padrão)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {isSysadmin && (
-                            <div className="space-y-2">
-                                <Label>Vincular a uma Marcenaria</Label>
-                                <Select value={orgId} onValueChange={setOrgId}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Global (Nenhuma / Sysadmin)</SelectItem>
-                                        {organizations.map(org => (
-                                            <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                        {/* Seção Principal */}
+                        <div className="space-y-4 rounded-lg bg-slate-50/50 border border-slate-100 p-4">
+                            <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                                <KeyRound className="w-4 h-4 text-indigo-500" />
+                                Dados de Acesso
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Endereço de E-mail</Label>
+                                    <Input type="email" placeholder="email@exemplo.com" required disabled={isEditing} value={email} onChange={e => setEmail(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{isEditing ? "Nova Senha (Opcional)" : "Senha Inicial"}</Label>
+                                    <Input type="password" placeholder="******" required={!isEditing} value={password} onChange={e => setPassword(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Nível de Acesso (Perfil)</Label>
+                                    <Select value={role} onValueChange={setRole}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {isSysadmin && <SelectItem value="sysadmin">Admin Geral (Sysadmin)</SelectItem>}
+                                            <SelectItem value="admin">Admin da Marcenaria</SelectItem>
+                                            <SelectItem value="carpenter">Marceneiro (Padrão)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {isSysadmin && (
+                                    <div className="space-y-2">
+                                        <Label>Vincular a uma Marcenaria</Label>
+                                        <Select value={orgId} onValueChange={setOrgId}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Global (Nenhuma / Sysadmin)</SelectItem>
+                                                {organizations.map(org => (
+                                                    <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
                             </div>
-                        )}
-
-                        <div className="space-y-2 pt-2">
-                            <Label className="flex items-center gap-2">
-                                <KeyRound className="w-3.5 h-3.5 text-slate-500" />
-                                {isEditing ? "Nova Senha (deixe em branco para ignorar)" : "Senha Inicial"}
-                            </Label>
-                            <Input type="password" placeholder="******" required={!isEditing} value={password} onChange={e => setPassword(e.target.value)} />
                         </div>
 
-                        <DialogFooter className="pt-4">
+                        {/* Seção Pessoal */}
+                        <div className="space-y-4 rounded-lg border border-slate-200 p-4">
+                            <h4 className="text-sm font-semibold text-slate-800 flex items-center justify-between">
+                                <span className="flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-slate-500" />
+                                    Informações Pessoais
+                                </span>
+                                {isEditing && (
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-xs font-semibold ${isActive ? 'text-emerald-600' : 'text-slate-500'}`}>Status:</span>
+                                        <Select value={isActive ? "active" : "inactive"} onValueChange={(v) => setIsActive(v === "active")}>
+                                            <SelectTrigger className="w-[120px] h-7 text-xs bg-white"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="active">Ativo</SelectItem>
+                                                <SelectItem value="inactive">Inativo</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Nome Completo</Label>
+                                    <Input placeholder="Ex: João Silva" required value={fullName} onChange={e => setFullName(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>CPF</Label>
+                                    <Input placeholder="000.000.000-00" value={cpf} onChange={e => setCpf(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Telefone / WhatsApp</Label>
+                                    <Input placeholder="(00) 00000-0000" value={phone} onChange={e => setPhone(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Cidade</Label>
+                                    <Input placeholder="Ex: São Paulo" value={city} onChange={e => setCity(e.target.value)} />
+                                </div>
+                                <div className="space-y-2 md:col-span-2 flex gap-4">
+                                    <div className="flex-1 space-y-2">
+                                        <Label>Endereço Completo</Label>
+                                        <Input placeholder="Rua, Número, Bairro" value={address} onChange={e => setAddress(e.target.value)} />
+                                    </div>
+                                    <div className="w-24 space-y-2">
+                                        <Label>UF</Label>
+                                        <Input placeholder="SP" maxLength={2} className="uppercase" value={stateLocation} onChange={e => setStateLocation(e.target.value.toUpperCase())} />
+                                    </div>
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label>Observações</Label>
+                                    <Input placeholder="Anotações internas sobre este usuário..." value={notes} onChange={e => setNotes(e.target.value)} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="pt-2">
                             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={formLoading}>Cancelar</Button>
                             <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={formLoading}>
                                 {formLoading ? "Salvando..." : (isEditing ? "Salvar Alterações" : "Criar Usuário")}

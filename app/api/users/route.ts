@@ -48,6 +48,13 @@ export async function GET(req: Request) {
                 full_name,
                 role,
                 organization_id,
+                address,
+                city,
+                state,
+                cpf,
+                phone,
+                notes,
+                is_active,
                 organizations ( name )
             `);
 
@@ -84,7 +91,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
         }
 
-        const { email, password, full_name, role, organization_id } = await req.json();
+        const {
+            email, password, full_name, role, organization_id,
+            address, city, state, cpf, phone, notes, is_active
+        } = await req.json();
 
         if (!email || !password || !full_name || !role) {
             return NextResponse.json({ error: "Preencha todos os campos obrigatórios." }, { status: 400 });
@@ -119,6 +129,13 @@ export async function POST(req: Request) {
                 organization_id: targetOrgId || null,
                 role: role,
                 full_name: full_name,
+                address: address || null,
+                city: city || null,
+                state: state || null,
+                cpf: cpf || null,
+                phone: phone || null,
+                notes: notes || null,
+                is_active: is_active !== undefined ? is_active : true,
             });
 
         if (profileError) {
@@ -141,7 +158,10 @@ export async function PUT(req: Request) {
             return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
         }
 
-        const { id, full_name, role, organization_id, password } = await req.json();
+        const {
+            id, full_name, role, organization_id, password,
+            address, city, state, cpf, phone, notes, is_active
+        } = await req.json();
 
         if (!id) return NextResponse.json({ error: "ID do usuário é obrigatório." }, { status: 400 });
 
@@ -157,7 +177,17 @@ export async function PUT(req: Request) {
         }
 
         // Atualizar perfil
-        const updateData: any = { full_name, role };
+        const updateData: any = {
+            full_name,
+            role,
+            address: address !== undefined ? address : null,
+            city: city !== undefined ? city : null,
+            state: state !== undefined ? state : null,
+            cpf: cpf !== undefined ? cpf : null,
+            phone: phone !== undefined ? phone : null,
+            notes: notes !== undefined ? notes : null,
+            is_active: is_active !== undefined ? is_active : true
+        };
         if (caller.role === 'sysadmin' && organization_id !== undefined) {
             updateData.organization_id = organization_id || null;
         }
