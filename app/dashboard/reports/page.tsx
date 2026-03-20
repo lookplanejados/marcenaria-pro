@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, FileText, TrendingUp, TrendingDown, DollarSign, BarChart3 } from "lucide-react";
+import { Search, FileText, TrendingUp, TrendingDown, DollarSign, BarChart3, CalendarDays, X } from "lucide-react";
 import { generateContractPDF } from "@/lib/generate-contract-pdf";
 
 type SaleReport = {
@@ -27,18 +27,34 @@ type SaleReport = {
 
 type ExpenseMap = Record<string, number>;
 
+function getDefaultDates() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    return { from: fmt(firstDay), to: fmt(today) };
+}
+
 export default function ReportsPage() {
+    const defaults = getDefaultDates();
+
     const [sales, setSales] = useState<SaleReport[]>([]);
     const [expenses, setExpenses] = useState<ExpenseMap>({});
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [dateFrom, setDateFrom] = useState(defaults.from);
+    const [dateTo, setDateTo] = useState(defaults.to);
 
     const fetchData = async () => {
         try {
             setLoading(true);
             const [salesRes, expRes] = await Promise.all([
-                supabase.from("sales").select("*").order("created_at", { ascending: false }),
+                supabase
+                    .from("sales")
+                    .select("*")
+                    .gte("created_at", dateFrom)
+                    .lte("created_at", dateTo + "T23:59:59")
+                    .order("created_at", { ascending: false }),
                 supabase.from("expenses").select("sale_id, amount").eq("expense_type", "Direct"),
             ]);
 
@@ -58,7 +74,13 @@ export default function ReportsPage() {
         }
     };
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => { fetchData(); }, [dateFrom, dateTo]);
+
+    const resetFilters = () => {
+        const d = getDefaultDates();
+        setDateFrom(d.from);
+        setDateTo(d.to);
+    };
 
     const formatBRL = (v: number) =>
         new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -93,6 +115,35 @@ export default function ReportsPage() {
 
     const statusOptions = ["all", "Orçamento", "Produção", "Montagem", "Concluído"];
 
+    const handleExportCSV = () => {
+        const headers = ["Projeto", "Status", "Valor", "Recebido", "Custos", "Comissões", "Lucro", "Margem (%)"];
+        const rows = filtered.map((s) => {
+            const directExp = expenses[s.id] || 0;
+            const costs = (s.raw_material_cost || 0) + (s.freight_cost || 0) + directExp;
+            const comms = (s.total_value * ((s.commission_seller_percent || 0) + (s.commission_carpenter_percent || 0) + (s.rt_architect_percent || 0))) / 100;
+            const profit = calcProfit(s);
+            const margin = calcMargin(s);
+            return [
+                `"${s.client_name}"`,
+                `"${s.status}"`,
+                s.total_value.toFixed(2),
+                (s.received_value || 0).toFixed(2),
+                costs.toFixed(2),
+                comms.toFixed(2),
+                profit.toFixed(2),
+                margin.toFixed(1),
+            ].join(",");
+        });
+        const csv = [headers.join(","), ...rows].join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `relatorio_${dateFrom}_${dateTo}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <header>
@@ -101,6 +152,45 @@ export default function ReportsPage() {
                     Demonstrativo de Resultado por projeto — Lucro real vs estimado
                 </p>
             </header>
+
+            {/* Date Range Filter */}
+            <div className="bg-white dark:bg-zinc-950 rounded-xl border border-black/5 dark:border-white/5 p-4 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <CalendarDays className="h-4 w-4 text-indigo-500" />
+                        <span className="text-sm font-medium">Período</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 flex-1">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">De</span>
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                                className="h-8 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-zinc-900 dark:border-zinc-700 dark:text-slate-200"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">Até</span>
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                                className="h-8 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-zinc-900 dark:border-zinc-700 dark:text-slate-200"
+                            />
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={resetFilters}
+                            className="h-8 px-3 text-xs gap-1.5"
+                        >
+                            <X className="h-3 w-3" />
+                            Limpar Filtros
+                        </Button>
+                    </div>
+                </div>
+            </div>
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -171,7 +261,7 @@ export default function ReportsPage() {
             <div className="bg-white dark:bg-zinc-950 rounded-xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-black/5 dark:border-white/5 flex flex-col md:flex-row md:items-center gap-3 justify-between">
                     <h3 className="font-semibold text-slate-800 dark:text-slate-200">Detalhamento por Projeto</h3>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <div className="flex gap-1">
                             {statusOptions.map((st) => (
                                 <button
@@ -190,6 +280,15 @@ export default function ReportsPage() {
                             <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
                             <Input placeholder="Buscar..." className="pl-8 h-8 w-40 text-xs" value={search} onChange={(e) => setSearch(e.target.value)} />
                         </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportCSV}
+                            className="h-8 px-3 text-xs gap-1.5"
+                            disabled={filtered.length === 0}
+                        >
+                            Exportar CSV
+                        </Button>
                     </div>
                 </div>
 

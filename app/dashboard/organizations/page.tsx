@@ -41,6 +41,8 @@ export default function OrganizationsPage() {
     // Delete flow
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [orgToDelete, setOrgToDelete] = useState<any>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deleteCounts, setDeleteCounts] = useState<{ users: number; sales: number } | null>(null);
 
     useEffect(() => {
         if (!rbacLoading) {
@@ -146,13 +148,25 @@ export default function OrganizationsPage() {
         }
     };
 
-    const handleDeleteClick = (org: any) => {
+    const handleDeleteClick = async (org: any) => {
         setOrgToDelete(org);
+        setDeleteCounts(null);
         setDeleteDialogOpen(true);
+
+        // Buscar contagens para mostrar ao usuário antes de confirmar
+        const [usersRes, salesRes] = await Promise.all([
+            supabase.from("profiles").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+            supabase.from("sales").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+        ]);
+        setDeleteCounts({
+            users: usersRes.count || 0,
+            sales: salesRes.count || 0,
+        });
     };
 
     const confirmDelete = async () => {
         if (!orgToDelete) return;
+        setDeleteLoading(true);
         try {
             const { error } = await supabase
                 .from("organizations")
@@ -165,6 +179,8 @@ export default function OrganizationsPage() {
             fetchOrganizations();
         } catch (error: any) {
             toast.error("Erro ao excluir", { description: error.message });
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -326,13 +342,28 @@ export default function OrganizationsPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle className="text-red-600">Excluir Marcenaria</DialogTitle>
-                        <DialogDescription>
-                            Você está prestes a excluir a entidade <b>{orgToDelete?.name}</b>. Isso removerá de forma <b>permanente</b> a marcenaria e também todos os seus dependentes (funcionários, projetos, clientes etc). Deseja continuar?
+                        <DialogDescription asChild>
+                            <div className="space-y-3 text-sm text-slate-600">
+                                <p>Você está prestes a excluir <b>{orgToDelete?.name}</b> de forma permanente.</p>
+                                {deleteCounts === null ? (
+                                    <p className="text-slate-400 animate-pulse">Calculando impacto...</p>
+                                ) : (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
+                                        <p className="font-semibold text-red-700">Isso irá apagar permanentemente:</p>
+                                        <p className="text-red-600">• <b>{deleteCounts.users}</b> usuário(s)</p>
+                                        <p className="text-red-600">• <b>{deleteCounts.sales}</b> projeto(s)</p>
+                                        <p className="text-red-600">• Todos os clientes, despesas e estoque vinculados</p>
+                                    </div>
+                                )}
+                                <p className="font-semibold text-red-700">Esta ação não pode ser desfeita.</p>
+                            </div>
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="mt-4">
-                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
-                        <Button variant="destructive" onClick={confirmDelete}>Sim, Excluir Totalmente</Button>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteLoading}>Cancelar</Button>
+                        <Button variant="destructive" onClick={confirmDelete} disabled={deleteLoading || deleteCounts === null}>
+                            {deleteLoading ? "Excluindo..." : "Sim, Excluir Tudo"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

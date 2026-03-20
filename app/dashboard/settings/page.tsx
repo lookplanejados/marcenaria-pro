@@ -183,7 +183,7 @@ export default function SettingsPage() {
             <section className="bg-white dark:bg-zinc-950 rounded-xl border border-black/5 dark:border-white/5 p-6 shadow-sm">
                 <h2 className="font-semibold text-sm text-slate-400 mb-2">Sobre o Sistema</h2>
                 <p className="text-xs text-slate-500">Marcenaria Pro v0.1.0 • Construído para gestões de alto desempenho</p>
-                <p className="text-xs text-slate-400 mt-1">© {new Date().getFullYear()} Look Planejados. Todos os direitos reservados.</p>
+                <p className="text-xs text-slate-400 mt-1">© {new Date().getFullYear()} Marcenaria Pro. Todos os direitos reservados.</p>
             </section>
         </div>
     );

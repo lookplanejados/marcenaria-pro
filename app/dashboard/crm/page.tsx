@@ -214,7 +214,7 @@ export default function CRMPage() {
                         <span className="text-xs text-slate-500 dark:text-slate-400">Ticket Médio</span>
                     </div>
                     <p className="text-2xl font-bold text-blue-600">
-                        {formatBRL(Object.keys(projectCounts).length > 0 ? totalProjectRevenue / Object.values(projectCounts).reduce((s, c) => s + c.count, 0) : 0)}
+                        {formatBRL((() => { const total = Object.values(projectCounts).reduce((s, c) => s + c.count, 0); return total > 0 ? totalProjectRevenue / total : 0; })())}
                     </p>
                 </div>
             </div>

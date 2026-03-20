@@ -31,7 +31,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { AuthService } from "@/services/authService";
-import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet, ArrowUpCircle, ArrowDownCircle, Trash2 } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, DollarSign, Wallet, ArrowUpCircle, ArrowDownCircle, Trash2, CalendarDays, X } from "lucide-react";
 import { FinanceCharts } from "@/components/finance-charts";
 
 type Expense = {
@@ -52,12 +52,25 @@ type Sale = {
     status: string;
 };
 
+function getDefaultDates() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    return { from: fmt(firstDay), to: fmt(today) };
+}
+
 export default function FinancePage() {
+    const defaults = getDefaultDates();
+
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
+
+    // Date range
+    const [dateFrom, setDateFrom] = useState(defaults.from);
+    const [dateTo, setDateTo] = useState(defaults.to);
 
     // Form State
     const [description, setDescription] = useState("");
@@ -65,12 +78,27 @@ export default function FinancePage() {
     const [expenseType, setExpenseType] = useState<"Fixed" | "Direct">("Fixed");
     const [saleId, setSaleId] = useState<string>("");
 
+    // Delete confirmation dialog
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+
     const fetchData = async () => {
         try {
             setLoading(true);
             const [expRes, salesRes] = await Promise.all([
-                supabase.from("expenses").select("*, sales(client_name)").order("date_incurred", { ascending: false }),
-                supabase.from("sales").select("*").order("created_at", { ascending: false }),
+                supabase
+                    .from("expenses")
+                    .select("*, sales(client_name)")
+                    .gte("date_incurred", dateFrom)
+                    .lte("date_incurred", dateTo)
+                    .order("date_incurred", { ascending: false }),
+                supabase
+                    .from("sales")
+                    .select("*")
+                    .gte("created_at", dateFrom)
+                    .lte("created_at", dateTo + "T23:59:59")
+                    .order("created_at", { ascending: false }),
             ]);
 
             if (expRes.error) throw expRes.error;
@@ -87,19 +115,30 @@ export default function FinancePage() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [dateFrom, dateTo]);
+
+    const resetFilters = () => {
+        const d = getDefaultDates();
+        setDateFrom(d.from);
+        setDateTo(d.to);
+    };
 
     const handleAddExpense = async () => {
+        const val = parseFloat(amount.replace(/\D/g, "")) / 100 || 0;
+
+        if (val <= 0) {
+            toast.error("Valor inválido", { description: "O valor da despesa deve ser maior que zero." });
+            return;
+        }
+
         try {
             setFormLoading(true);
             const profile = await AuthService.getProfile();
             if (!profile?.organization_id) throw new Error("Organização não encontrada.");
 
-            const val = parseFloat(amount.replace(/\D/g, "")) / 100 || 0;
-
             const { error } = await supabase.from("expenses").insert({
                 organization_id: profile.organization_id,
-                description,
+                description: description.trim(),
                 amount: val,
                 expense_type: expenseType,
                 sale_id: saleId || null,
@@ -118,6 +157,23 @@ export default function FinancePage() {
             toast.error("Erro ao salvar despesa", { description: err.message });
         } finally {
             setFormLoading(false);
+        }
+    };
+
+    const handleDeleteExpense = async () => {
+        if (!expenseToDelete) return;
+        try {
+            setDeleteLoading(true);
+            const { error } = await supabase.from("expenses").delete().eq("id", expenseToDelete.id);
+            if (error) throw error;
+            toast.success("Despesa excluída");
+            setDeleteDialogOpen(false);
+            setExpenseToDelete(null);
+            fetchData();
+        } catch (err: any) {
+            toast.error("Erro ao excluir despesa", { description: err.message });
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -201,6 +257,45 @@ export default function FinancePage() {
                     </DialogContent>
                 </Dialog>
             </header>
+
+            {/* Date Range Filter */}
+            <div className="bg-white dark:bg-zinc-950 rounded-xl border border-black/5 dark:border-white/5 p-4 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <CalendarDays className="h-4 w-4 text-indigo-500" />
+                        <span className="text-sm font-medium">Período</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 flex-1">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">De</span>
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                                className="h-8 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-zinc-900 dark:border-zinc-700 dark:text-slate-200"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">Até</span>
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                                className="h-8 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring dark:bg-zinc-900 dark:border-zinc-700 dark:text-slate-200"
+                            />
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={resetFilters}
+                            className="h-8 px-3 text-xs gap-1.5"
+                        >
+                            <X className="h-3 w-3" />
+                            Limpar Filtros
+                        </Button>
+                    </div>
+                </div>
+            </div>
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -295,11 +390,9 @@ export default function FinancePage() {
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-slate-400 hover:text-red-500"
-                                            onClick={async () => {
-                                                const { error } = await supabase.from("expenses").delete().eq("id", exp.id);
-                                                if (error) { toast.error("Erro ao excluir"); return; }
-                                                toast.success("Despesa excluída");
-                                                fetchData();
+                                            onClick={() => {
+                                                setExpenseToDelete(exp);
+                                                setDeleteDialogOpen(true);
                                             }}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -311,6 +404,48 @@ export default function FinancePage() {
                     </Table>
                 )}
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+                setDeleteDialogOpen(open);
+                if (!open) setExpenseToDelete(null);
+            }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirmar exclusão</DialogTitle>
+                        <DialogDescription>
+                            Tem certeza que deseja excluir a despesa{" "}
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">
+                                "{expenseToDelete?.description}"
+                            </span>{" "}
+                            no valor de{" "}
+                            <span className="font-semibold text-red-500">
+                                {formatBRL(expenseToDelete?.amount ?? 0)}
+                            </span>
+                            ? Esta ação não pode ser desfeita.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteDialogOpen(false);
+                                setExpenseToDelete(null);
+                            }}
+                            disabled={deleteLoading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteExpense}
+                            disabled={deleteLoading}
+                        >
+                            {deleteLoading ? "Excluindo..." : "Excluir"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
