@@ -55,9 +55,10 @@ export function NewSaleDialog({ onSaleAdded }: { onSaleAdded: () => void }) {
 
             const insertData: any = {
                 organization_id: profile.organization_id,
-                client_name: clientName,
+                client_name: clientName.trim(),
                 total_value: val,
                 status: 'Orçamento',
+                notes: description.trim() || null,
             };
 
             if (selectedClient) insertData.client_id = selectedClient;
@@ -148,6 +149,16 @@ export function NewSaleDialog({ onSaleAdded }: { onSaleAdded: () => void }) {
                             placeholder="R$ 0,00"
                             value={totalValue}
                             onChange={handleFormatValue}
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="description">Observações (Opcional)</Label>
+                        <Input
+                            id="description"
+                            placeholder="Ex: Cozinha + sala, entrega em 60 dias"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
                         />
                     </div>
 

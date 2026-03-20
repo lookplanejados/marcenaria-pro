@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Users, Plus, Edit2, Trash2, Search, KeyRound } from "lucide-react";
+import { DataPagination } from "@/components/ui/data-pagination";
 import { useRouter } from "next/navigation";
 
 export default function UsersPage() {
@@ -30,6 +31,8 @@ export default function UsersPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [filterRole, setFilterRole] = useState("all");
     const [filterOrg, setFilterOrg] = useState("all");
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 20;
 
     // Modal state
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -233,6 +236,7 @@ export default function UsersPage() {
         const matchesOrg = filterOrg === "all" || u.organization_id === filterOrg || (!u.organization_id && filterOrg === "none");
         return matchesSearch && matchesRole && matchesOrg;
     });
+    const paginatedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     if (rbacLoading) return <div className="p-8 text-center text-slate-500">Carregando permissões...</div>;
     if (!isSysadmin && !isAdmin) return null;
@@ -259,7 +263,7 @@ export default function UsersPage() {
                                 placeholder="Buscar usuário..."
                                 className="pl-9 h-9 border-slate-200 shadow-sm"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                             />
                         </div>
                         <Select value={filterRole} onValueChange={setFilterRole}>
@@ -308,7 +312,7 @@ export default function UsersPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredUsers.map(user => (
+                                    paginatedUsers.map(user => (
                                         <TableRow key={user.id}>
                                             <TableCell>
                                                 <div className="font-medium text-slate-900">{user.full_name || "Sem Nome"}</div>
@@ -346,6 +350,7 @@ export default function UsersPage() {
                         </Table>
                     </div>
                 )}
+                <DataPagination page={page} pageSize={PAGE_SIZE} total={filteredUsers.length} onPageChange={setPage} />
             </div>
 
             {/* Form Modal */}

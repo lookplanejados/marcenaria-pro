@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { AuthService } from "@/services/authService";
 import { Plus, Users, Search, Phone, Mail, MapPin, Pencil, Trash2 } from "lucide-react";
+import { DataPagination } from "@/components/ui/data-pagination";
 
 type Client = {
     id: string;
@@ -30,6 +31,8 @@ export default function CRMPage() {
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 20;
     const [dialogOpen, setDialogOpen] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -95,16 +98,24 @@ export default function CRMPage() {
             const profile = await AuthService.getProfile();
             if (!profile?.organization_id) throw new Error("Organização não encontrada.");
 
+            const payload = {
+                name: name.trim(),
+                phone: phone.trim(),
+                email: email.trim(),
+                address: address.trim(),
+                notes: notes.trim(),
+            };
+
             if (editingClient) {
                 const { error } = await supabase.from("clients")
-                    .update({ name, phone, email, address, notes })
+                    .update(payload)
                     .eq("id", editingClient.id);
                 if (error) throw error;
                 toast.success("Cliente atualizado!");
             } else {
                 const { error } = await supabase.from("clients").insert({
                     organization_id: profile.organization_id,
-                    name, phone, email, address, notes,
+                    ...payload,
                 });
                 if (error) throw error;
                 toast.success("Cliente cadastrado!");
@@ -136,6 +147,7 @@ export default function CRMPage() {
             (c.phone || "").includes(search) ||
             (c.email || "").toLowerCase().includes(search.toLowerCase())
     );
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const totalClients = clients.length;
     const totalProjectRevenue = Object.values(projectCounts).reduce((s, c) => s + c.revenue, 0);
@@ -225,7 +237,7 @@ export default function CRMPage() {
                     <h3 className="font-semibold text-slate-800 dark:text-slate-200">Agenda de Clientes</h3>
                     <div className="relative max-w-xs w-full">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                        <Input placeholder="Buscar por nome, telefone ou email..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <Input placeholder="Buscar por nome, telefone ou email..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
                     </div>
                 </div>
                 {loading ? (
@@ -245,7 +257,7 @@ export default function CRMPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filtered.map((client) => {
+                            {paginated.map((client) => {
                                 const stats = projectCounts[client.name.toLowerCase().trim()] || { count: 0, revenue: 0 };
                                 return (
                                     <TableRow key={client.id}>
@@ -306,6 +318,7 @@ export default function CRMPage() {
                         </TableBody>
                     </Table>
                 )}
+                <DataPagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} />
             </div>
         </div>
     );

@@ -14,7 +14,8 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { AuthService } from "@/services/authService";
-import { Plus, Ruler, Phone, Mail, Pencil, Trash2, Percent } from "lucide-react";
+import { Plus, Ruler, Phone, Mail, Pencil, Trash2, Percent, Search } from "lucide-react";
+import { DataPagination } from "@/components/ui/data-pagination";
 
 type Architect = {
     id: string;
@@ -32,6 +33,9 @@ export default function ArchitectsPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
     const [editing, setEditing] = useState<Architect | null>(null);
+    const [search, setSearch] = useState("");
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 20;
 
     // Dados de vendas vinculadas
     const [salesData, setSalesData] = useState<Record<string, { count: number; totalRT: number }>>({});
@@ -94,9 +98,11 @@ export default function ArchitectsPage() {
             if (!profile?.organization_id) throw new Error("Organização não encontrada.");
 
             const payload = {
-                name, phone, email,
+                name: name.trim(),
+                phone: phone.trim(),
+                email: email.trim(),
                 default_rt_percent: parseFloat(rtPercent) || 5,
-                notes,
+                notes: notes.trim(),
             };
 
             if (editing) {
@@ -134,6 +140,13 @@ export default function ArchitectsPage() {
 
     const totalRT = Object.values(salesData).reduce((s, d) => s + d.totalRT, 0);
     const totalIndicacoes = Object.values(salesData).reduce((s, d) => s + d.count, 0);
+
+    const filtered = architects.filter((a) =>
+        a.name.toLowerCase().includes(search.toLowerCase()) ||
+        (a.phone || "").includes(search) ||
+        (a.email || "").toLowerCase().includes(search.toLowerCase())
+    );
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     return (
         <div className="flex flex-col gap-6">
@@ -217,13 +230,17 @@ export default function ArchitectsPage() {
 
             {/* Table */}
             <div className="bg-white dark:bg-zinc-950 rounded-xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-black/5 dark:border-white/5">
+                <div className="p-4 border-b border-black/5 dark:border-white/5 flex flex-col md:flex-row md:items-center gap-3 justify-between">
                     <h3 className="font-semibold text-slate-800 dark:text-slate-200">Arquitetos e Indicações</h3>
+                    <div className="relative max-w-xs w-full">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <Input placeholder="Buscar por nome, telefone ou e-mail..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+                    </div>
                 </div>
                 {loading ? (
                     <div className="p-8 text-center text-slate-400 animate-pulse">Carregando...</div>
-                ) : architects.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400">Nenhum arquiteto cadastrado. Clique em "Novo Arquiteto".</div>
+                ) : filtered.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400">{architects.length === 0 ? 'Nenhum arquiteto cadastrado. Clique em "Novo Arquiteto".' : "Nenhum arquiteto encontrado."}</div>
                 ) : (
                     <Table>
                         <TableHeader>
@@ -237,7 +254,7 @@ export default function ArchitectsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {architects.map((a) => {
+                            {paginated.map((a) => {
                                 const stats = salesData[a.id] || { count: 0, totalRT: 0 };
                                 return (
                                     <TableRow key={a.id}>
@@ -289,6 +306,7 @@ export default function ArchitectsPage() {
                         </TableBody>
                     </Table>
                 )}
+                <DataPagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} />
             </div>
         </div>
     );

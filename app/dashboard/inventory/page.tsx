@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { AuthService } from "@/services/authService";
 import { Plus, Package, Layers, Search } from "lucide-react";
+import { DataPagination } from "@/components/ui/data-pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2 } from "lucide-react";
 
@@ -51,6 +52,8 @@ export default function InventoryPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
     const [search, setSearch] = useState("");
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 20;
 
     // Form
     const [category, setCategory] = useState<"MDF" | "Ferragem">("MDF");
@@ -90,17 +93,28 @@ export default function InventoryPage() {
             const unitCost = parseFloat(costPerUnit.replace(/\D/g, "")) / 100 || 0;
 
             const parsedQuantity = parseFloat(quantity) || 0;
-            const { error } = await supabase.from("inventory").insert({
+            const { data: insertedItem, error } = await supabase.from("inventory").insert({
                 organization_id: profile.organization_id,
                 category,
-                brand,
-                name_or_color: nameOrColor,
+                brand: brand.trim(),
+                name_or_color: nameOrColor.trim(),
                 thickness: category === "MDF" ? parseFloat(thickness) || null : null,
                 quantity: parsedQuantity,
                 cost_per_unit: unitCost,
-            });
+            }).select("id").single();
 
             if (error) throw error;
+
+            // Registra movimentação de entrada no estoque
+            if (insertedItem && parsedQuantity > 0) {
+                await supabase.from("stock_movements").insert({
+                    organization_id: profile.organization_id,
+                    inventory_id: insertedItem.id,
+                    movement_type: "IN",
+                    quantity: parsedQuantity,
+                    notes: `Entrada inicial: ${brand.trim()} ${nameOrColor.trim()}`,
+                });
+            }
 
             if (generateExpense && unitCost > 0 && parsedQuantity > 0) {
                 const totalCost = parsedQuantity * unitCost;
@@ -163,6 +177,7 @@ export default function InventoryPage() {
             i.name_or_color?.toLowerCase().includes(search.toLowerCase()) ||
             i.brand?.toLowerCase().includes(search.toLowerCase())
     );
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     // KPIs
     const totalMDF = items.filter((i) => i.category === "MDF").reduce((s, i) => s + i.quantity, 0);
@@ -276,7 +291,7 @@ export default function InventoryPage() {
                             placeholder="Buscar por nome ou marca..."
                             className="pl-9"
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         />
                     </div>
                 </div>
@@ -299,7 +314,7 @@ export default function InventoryPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filtered.map((item) => (
+                            {paginated.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell>
                                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${item.category === "MDF" ? "bg-amber-50 text-amber-700 dark:bg-amber-900/20" : "bg-sky-50 text-sky-700 dark:bg-sky-900/20"}`}>
@@ -322,6 +337,7 @@ export default function InventoryPage() {
                         </TableBody>
                     </Table>
                 )}
+                <DataPagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} />
             </div>
         </div>
     );

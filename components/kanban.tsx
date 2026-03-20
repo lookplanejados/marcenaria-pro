@@ -30,6 +30,7 @@ export function KanbanBoard() {
   const { isCarpenter } = useRBAC();
   const [selectedProject, setSelectedProject] = useState<SaleProject | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(true);
 
   // Busca inicial
   const fetchProjects = async () => {
@@ -190,14 +191,20 @@ export function KanbanBoard() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Kanban de Projetos</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Acompanhamento e saúde financeira de vendas ativas</p>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCompleted((v) => !v)}
+            className={`text-xs px-3 py-1.5 rounded-md border transition-colors font-medium ${showCompleted ? 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-zinc-700' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}
+          >
+            {showCompleted ? 'Ocultar Concluídos' : 'Mostrar Concluídos'}
+          </button>
           <NewSaleDialog onSaleAdded={fetchProjects} />
         </div>
       </header>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-4">
-          {COLUMNS.map((column) => (
+        <div className={`grid grid-cols-1 gap-4 pb-4 ${showCompleted ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+          {COLUMNS.filter((col) => showCompleted || col !== 'Concluído').map((column) => (
             <Droppable key={column} droppableId={column}>
               {(provided, snapshot) => (
                 <div
