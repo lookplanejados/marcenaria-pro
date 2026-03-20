@@ -52,10 +52,6 @@ export default function LoginPage() {
                             <Lock className="h-6 w-6 text-indigo-600" />
                         </div>
                     </div>
-                    {/* Linha de debug temporária */}
-                    <p className="text-center text-[10px] text-gray-400 break-all mb-2">
-                        URL Conectada: {process.env.NEXT_PUBLIC_SUPABASE_URL || "VAZIA"}
-                    </p>
                     <CardTitle className="text-2xl font-bold text-center">Marcenaria Pro</CardTitle>
                     <CardDescription className="text-center">
                         Acesse o sistema com suas credenciais

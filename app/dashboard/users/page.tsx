@@ -54,6 +54,7 @@ export default function UsersPage() {
     // Delete flow
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<any>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
         if (!rbacLoading) {
@@ -190,6 +191,7 @@ export default function UsersPage() {
 
     const confirmDelete = async () => {
         if (!userToDelete) return;
+        setDeleteLoading(true);
         try {
             const token = await AuthService.getAccessToken();
             const res = await fetch(`/api/users?id=${userToDelete.id}`, {
@@ -207,6 +209,8 @@ export default function UsersPage() {
             fetchUsers();
         } catch (error: any) {
             toast.error(error.message);
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -469,8 +473,10 @@ export default function UsersPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="mt-4">
-                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
-                        <Button variant="destructive" onClick={confirmDelete}>Sim, Excluir Usuário</Button>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteLoading}>Cancelar</Button>
+                        <Button variant="destructive" onClick={confirmDelete} disabled={deleteLoading}>
+                            {deleteLoading ? "Excluindo..." : "Sim, Excluir Usuário"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

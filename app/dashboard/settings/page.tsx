@@ -5,20 +5,12 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Sun, Moon, Monitor, Palette, Save } from "lucide-react";
+import { Sun, Moon, Monitor, Save } from "lucide-react";
 import { useRBAC } from "@/components/rbac-provider";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { TeamManager } from "@/components/team-manager";
 
-const ACCENT_COLORS = [
-    { name: "Índigo", value: "indigo", bg: "bg-indigo-500", ring: "ring-indigo-500" },
-    { name: "Violeta", value: "violet", bg: "bg-violet-500", ring: "ring-violet-500" },
-    { name: "Esmeralda", value: "emerald", bg: "bg-emerald-500", ring: "ring-emerald-500" },
-    { name: "Azul", value: "blue", bg: "bg-blue-500", ring: "ring-blue-500" },
-    { name: "Rosa", value: "rose", bg: "bg-rose-500", ring: "ring-rose-500" },
-    { name: "Âmbar", value: "amber", bg: "bg-amber-500", ring: "ring-amber-500" },
-];
 
 export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
@@ -123,26 +115,13 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                <div>
-                    <Label className="text-sm text-slate-500 mb-3 block">Cor de Destaque</Label>
-                    <div className="flex flex-wrap gap-3">
-                        {ACCENT_COLORS.map((color) => (
-                            <button
-                                key={color.value}
-                                className={`h-10 w-10 rounded-full ${color.bg} hover:scale-110 transition-transform ring-2 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 ring-transparent hover:${color.ring} focus:${color.ring}`}
-                                title={color.name}
-                            />
-                        ))}
-                    </div>
-                    <p className="text-xs text-slate-400 mt-2">Em breve: as cores vão se aplicar em todo o sistema.</p>
-                </div>
             </section>
 
             {/* Dados da Marcenaria */}
             <section className="bg-white dark:bg-zinc-950 rounded-xl border border-black/5 dark:border-white/5 p-6 shadow-sm space-y-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Palette className="h-5 w-5 text-indigo-500" />
+                        <Save className="h-5 w-5 text-indigo-500" />
                         <h2 className="font-semibold text-lg text-slate-800 dark:text-slate-200">Dados da Marcenaria</h2>
                     </div>
                     {!isCompanyEditable && (

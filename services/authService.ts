@@ -63,7 +63,7 @@ export const AuthService = {
         return {
             id: user.id,
             organization_id: orgId || '',
-            role: 'sysadmin', // Default de fallback para evitar quebrar componentes visuais. O DB barreira por RLS.
+            role: 'carpenter',
             full_name: user.email?.split('@')[0] || 'Usuário',
         };
     },

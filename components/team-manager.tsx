@@ -15,7 +15,7 @@ import { Users, UserPlus, Trash2, Mail } from "lucide-react";
 type TeamMember = {
     id: string;
     full_name: string;
-    role: "owner" | "admin" | "carpenter";
+    role: "sysadmin" | "admin" | "carpenter";
 };
 
 export function TeamManager() {
@@ -46,13 +46,13 @@ export function TeamManager() {
     }, []);
 
     const roleLabels: Record<string, string> = {
-        owner: "Proprietário",
+        sysadmin: "Admin Geral",
         admin: "Administrador",
         carpenter: "Marceneiro",
     };
 
     const roleColors: Record<string, string> = {
-        owner: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+        sysadmin: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
         admin: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
         carpenter: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     };
@@ -131,7 +131,6 @@ export function TeamManager() {
                             <SelectContent>
                                 <SelectItem value="carpenter">Marceneiro</SelectItem>
                                 <SelectItem value="admin">Administrador</SelectItem>
-                                <SelectItem value="owner">Proprietário</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

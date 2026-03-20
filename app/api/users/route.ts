@@ -171,6 +171,8 @@ export async function PUT(req: Request) {
 
             // Verifica se o usuário que está sendo editado pertence a org dele
             const { data: targetProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', id).single();
+            if (!targetProfile) return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
+            if (targetProfile.role === 'sysadmin') return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
             if (targetProfile.organization_id !== caller.organization_id) {
                 return NextResponse.json({ error: "Você não tem permissão para editar este usuário." }, { status: 403 });
             }
@@ -228,6 +230,8 @@ export async function DELETE(req: Request) {
         // Validação de segurança para 'admin'
         if (caller.role === 'admin') {
             const { data: targetProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', id).single();
+            if (!targetProfile) return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
+            if (targetProfile.role === 'sysadmin') return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
             if (targetProfile.organization_id !== caller.organization_id) {
                 return NextResponse.json({ error: "Você não tem permissão para excluir este usuário." }, { status: 403 });
             }

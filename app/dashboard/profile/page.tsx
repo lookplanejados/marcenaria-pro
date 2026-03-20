@@ -71,11 +71,6 @@ export default function ProfilePage() {
             color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
             desc: "Acesso e gerenciamento global do sistema. Controle completo sobre todas as organizações e funções.",
         },
-        owner: {
-            label: "Proprietário",
-            color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-            desc: "Acesso total ao sistema: financeiro, estoque, CRM e configurações.",
-        },
         admin: {
             label: "Administrador",
             color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -88,7 +83,7 @@ export default function ProfilePage() {
         },
     };
 
-    const currentRole = roleLabels[profile?.role || "owner"];
+    const currentRole = profile?.role ? roleLabels[profile.role] : undefined;
 
     return (
         <div className="flex flex-col gap-6 max-w-2xl">

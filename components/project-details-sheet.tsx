@@ -5,9 +5,11 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
-import { Save, Wallet, Percent, Truck, PackageOpen, Trash2, FileText, AlertTriangle } from "lucide-react";
+import { AuthService } from "@/services/authService";
+import { Save, Wallet, Percent, PackageOpen, Trash2, FileText, AlertTriangle } from "lucide-react";
 import { generateContractPDF } from "@/lib/generate-contract-pdf";
 import { InstallmentsManager } from "./installments-manager";
 import { StockLinker } from "./stock-linker";
@@ -37,6 +39,9 @@ export function ProjectDetailsSheet({ project, open, onOpenChange, onUpdated }: 
     const { isCarpenter } = useRBAC();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<Partial<SaleProject>>({});
+    const [reportDialogOpen, setReportDialogOpen] = useState(false);
+    const [reportMessage, setReportMessage] = useState("");
+    const [reportLoading, setReportLoading] = useState(false);
 
     useEffect(() => {
         if (project && open) {
@@ -96,9 +101,35 @@ export function ProjectDetailsSheet({ project, open, onOpenChange, onUpdated }: 
     const currentProfit = currentTotal - currentCosts - currentCommissionsValue;
     const marginPercent = currentTotal > 0 ? ((currentProfit / currentTotal) * 100).toFixed(0) : "0";
 
+    const handleReport = async () => {
+        if (!project || !reportMessage.trim()) return;
+        setReportLoading(true);
+        try {
+            const token = await AuthService.getAccessToken();
+            const res = await fetch(`/api/sales/${project.id}/report`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ message: reportMessage }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Erro ao registrar relato');
+            toast.success('Relato registrado!', { description: 'O gestor foi notificado sobre o problema.' });
+            setReportMessage("");
+            setReportDialogOpen(false);
+        } catch (err: any) {
+            toast.error('Erro ao registrar relato', { description: err.message });
+        } finally {
+            setReportLoading(false);
+        }
+    };
+
     if (!project) return null;
 
     return (
+        <>
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="w-full sm:max-w-md overflow-y-auto">
                 <SheetHeader className="mb-6">
@@ -289,11 +320,7 @@ export function ProjectDetailsSheet({ project, open, onOpenChange, onUpdated }: 
                             <Button
                                 variant="outline"
                                 className="w-full border-amber-200 text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:border-amber-900 dark:hover:bg-amber-900/20 mt-4"
-                                onClick={() => {
-                                    toast.success('Gestor notificado com sucesso!', {
-                                        description: 'O proprietário foi avisado sobre a falta de material/insumo para este projeto.'
-                                    });
-                                }}
+                                onClick={() => setReportDialogOpen(true)}
                             >
                                 <AlertTriangle className="h-4 w-4 mr-2" />
                                 Relatar Falta de Material / Problema
@@ -303,5 +330,33 @@ export function ProjectDetailsSheet({ project, open, onOpenChange, onUpdated }: 
                 </div>
             </SheetContent>
         </Sheet>
+
+        <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="text-amber-600">Relatar Problema</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 py-2">
+                    <p className="text-sm text-slate-500">Descreva a falta de material ou problema encontrado no projeto <b>{project?.client_name}</b>.</p>
+                    <Input
+                        placeholder="Ex: Falta de MDF 18mm, ferragem danificada..."
+                        value={reportMessage}
+                        onChange={(e) => setReportMessage(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleReport()}
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setReportDialogOpen(false)} disabled={reportLoading}>Cancelar</Button>
+                    <Button
+                        className="bg-amber-500 hover:bg-amber-600 text-white"
+                        onClick={handleReport}
+                        disabled={!reportMessage.trim() || reportLoading}
+                    >
+                        {reportLoading ? "Registrando..." : "Enviar Relato"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }

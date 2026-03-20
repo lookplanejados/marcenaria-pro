@@ -39,8 +39,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 403 });
         }
 
-        if (callerProfile.role !== 'owner' && callerProfile.role !== 'admin') {
-            return NextResponse.json({ error: 'Apenas proprietários e administradores podem convidar usuários.' }, { status: 403 });
+        if (callerProfile.role !== 'sysadmin' && callerProfile.role !== 'admin') {
+            return NextResponse.json({ error: 'Apenas administradores podem convidar usuários.' }, { status: 403 });
         }
 
         // Tenta enviar o convite pelo Supabase Auth Admin
