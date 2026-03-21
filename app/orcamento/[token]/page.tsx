@@ -168,6 +168,7 @@ export default function PublicBudgetPage() {
                     <BudgetEnvironmentEditor
                         token={token}
                         readOnly={isApprovedOrRejected}
+                        avistaDiscountPercent={budget.avista_discount_percent}
                         onTotalsChange={reloadTotals}
                     />
                 </div>

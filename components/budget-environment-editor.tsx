@@ -14,7 +14,6 @@ interface PriceTableItem {
     position: number;
     name: string;
     price_prazo: number;
-    price_avista: number;
     is_active: boolean;
 }
 
@@ -45,6 +44,7 @@ interface Props {
     budgetId?: string;
     token?: string;       // modo público: usa token em vez de budgetId
     readOnly?: boolean;
+    avistaDiscountPercent?: number;
     onTotalsChange?: () => void;
 }
 
@@ -54,7 +54,7 @@ const fmt = (v: number) =>
 const calcPreview = (alt: number, larg: number, price: number, qty: number) =>
     Math.round((alt * larg / 10000) * price * qty * 100) / 100;
 
-export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, onTotalsChange }: Props) {
+export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avistaDiscountPercent = 0, onTotalsChange }: Props) {
     const [environments, setEnvironments] = useState<Environment[]>([]);
     const [priceItems, setPriceItems]     = useState<PriceTableItem[]>([]);
     const [collapsed, setCollapsed]       = useState<Record<string, boolean>>({});
@@ -63,6 +63,10 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, onT
     // form novo ambiente
     const [addingEnv, setAddingEnv]     = useState(false);
     const [newEnvName, setNewEnvName]   = useState("");
+
+    // edição do nome do ambiente
+    const [editEnvId, setEditEnvId]     = useState<string | null>(null);
+    const [editEnvName, setEditEnvName] = useState("");
 
     // form novo item (por ambiente)
     const [addingItemEnv, setAddingItemEnv] = useState<string | null>(null);
@@ -142,6 +146,18 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, onT
         toast.success("Ambiente removido!");
     };
 
+    const handleSaveEnvName = async (envId: string) => {
+        if (!budgetId || !editEnvName.trim()) return;
+        await fetch(`/api/budgets/${budgetId}/environments/${envId}`, {
+            method: "PUT",
+            headers: await authHeaders(),
+            body: JSON.stringify({ name: editEnvName.trim() }),
+        });
+        setEnvironments(prev => prev.map(e => e.id === envId ? { ...e, name: editEnvName.trim() } : e));
+        setEditEnvId(null);
+        toast.success("Ambiente renomeado!");
+    };
+
     // ── Item ──────────────────────────────────────────────
     const handlePriceItemSelect = (itemId: string) => {
         const found = priceItems.find(p => p.id === itemId);
@@ -151,7 +167,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, onT
                 price_table_item_id: itemId,
                 description:         found.name,
                 price_prazo_m2:      found.price_prazo,
-                price_avista_m2:     found.price_avista,
+                price_avista_m2:     0,
             }));
         } else {
             setNewItem(prev => ({ ...prev, price_table_item_id: "", description: "", price_prazo_m2: 0, price_avista_m2: 0 }));
@@ -245,27 +261,55 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, onT
         <div className="space-y-4">
             {environments.map(env => {
                 const isCollapsed = collapsed[env.id];
-                const subPrazo  = env.items.filter(i => i.is_active).reduce((s, i) => s + (i.value_prazo  || 0), 0);
-                const subAvista = env.items.filter(i => i.is_active).reduce((s, i) => s + (i.value_avista || 0), 0);
+                const subPrazo  = env.items.filter(i => i.is_active).reduce((s, i) => s + (i.value_prazo || 0), 0);
+                const subAvista = subPrazo * (1 - avistaDiscountPercent / 100);
 
                 return (
                     <div key={env.id} className="rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
                         {/* cabeçalho ambiente */}
-                        <div
-                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-zinc-900 cursor-pointer"
-                            onClick={() => setCollapsed(prev => ({ ...prev, [env.id]: !prev[env.id] }))}
-                        >
-                            {isCollapsed ? <ChevronRight className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
-                            <span className="font-semibold text-sm flex-1">{env.name}</span>
-                            <span className="text-xs text-indigo-600 font-medium">{fmt(subPrazo)}</span>
-                            <span className="text-xs text-emerald-600 font-medium ml-3">{fmt(subAvista)}</span>
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-zinc-900">
+                            <button onClick={() => setCollapsed(prev => ({ ...prev, [env.id]: !prev[env.id] }))}>
+                                {isCollapsed ? <ChevronRight className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                            </button>
+
+                            {editEnvId === env.id ? (
+                                <div className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
+                                    <Input
+                                        className="h-6 text-sm font-semibold flex-1"
+                                        value={editEnvName}
+                                        onChange={e => setEditEnvName(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') handleSaveEnvName(env.id); if (e.key === 'Escape') setEditEnvId(null); }}
+                                        autoFocus
+                                    />
+                                    <button onClick={() => handleSaveEnvName(env.id)} className="text-indigo-500 hover:text-indigo-700">
+                                        <Check className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button onClick={() => setEditEnvId(null)} className="text-slate-400 hover:text-slate-600">
+                                        <X className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <span
+                                    className="font-semibold text-sm flex-1 cursor-pointer"
+                                    onClick={() => setCollapsed(prev => ({ ...prev, [env.id]: !prev[env.id] }))}
+                                >{env.name}</span>
+                            )}
+
                             {!readOnly && !isPublic && (
-                                <button
-                                    onClick={e => { e.stopPropagation(); handleDeleteEnv(env.id); }}
-                                    className="ml-2 text-slate-300 hover:text-red-500 transition-colors"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                                <>
+                                    <button
+                                        onClick={e => { e.stopPropagation(); setEditEnvId(env.id); setEditEnvName(env.name); }}
+                                        className="text-slate-300 hover:text-indigo-500 transition-colors"
+                                    >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                        onClick={e => { e.stopPropagation(); handleDeleteEnv(env.id); }}
+                                        className="text-slate-300 hover:text-red-500 transition-colors"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                </>
                             )}
                         </div>
 
@@ -353,8 +397,8 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, onT
                                                     <span className="text-right text-slate-400">{item.alt_cm}×{item.larg_cm}</span>
                                                 )}
 
-                                                <span className="text-right font-medium">{fmt(item.value_prazo * (isPublic ? item.qty / item.qty : 1))}</span>
-                                                <span className="text-right text-emerald-600 font-medium">{fmt(item.value_avista)}</span>
+                                                <span className="text-right font-medium">{fmt(item.value_prazo)}</span>
+                                                <span className="text-right text-emerald-600 font-medium">{fmt(item.value_prazo * (1 - avistaDiscountPercent / 100))}</span>
 
                                                 {!isPublic && (
                                                     <div className="flex items-center gap-1 justify-end">
@@ -430,10 +474,15 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, onT
                                                 </div>
                                                 {newItem.price_prazo_m2 > 0 && (
                                                     <div className="text-[10px] text-slate-400 flex gap-3">
-                                                        <span>Preço/m²: A Prazo {fmt(newItem.price_prazo_m2)} · À Vista {fmt(newItem.price_avista_m2)}</span>
+                                                        <span>Preço/m²: {fmt(newItem.price_prazo_m2)}</span>
                                                         <span className="font-bold text-indigo-600">
-                                                            Valor: {fmt(calcPreview(newItem.alt_cm, newItem.larg_cm, newItem.price_prazo_m2, newItem.qty))}
+                                                            A Prazo: {fmt(calcPreview(newItem.alt_cm, newItem.larg_cm, newItem.price_prazo_m2, newItem.qty))}
                                                         </span>
+                                                        {avistaDiscountPercent > 0 && (
+                                                            <span className="font-bold text-emerald-600">
+                                                                À Vista: {fmt(calcPreview(newItem.alt_cm, newItem.larg_cm, newItem.price_prazo_m2, newItem.qty) * (1 - avistaDiscountPercent / 100))}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 )}
                                                 <div className="flex gap-2">

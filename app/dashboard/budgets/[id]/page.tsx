@@ -247,6 +247,7 @@ export default function BudgetDetailPage() {
                 <h3 className="font-semibold text-sm">Ambientes e Móveis</h3>
                 <BudgetEnvironmentEditor
                     budgetId={id}
+                    avistaDiscountPercent={budget.avista_discount_percent}
                     onTotalsChange={load}
                 />
             </div>

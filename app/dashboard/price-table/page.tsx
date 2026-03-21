@@ -18,7 +18,6 @@ interface PriceItem {
     position: number;
     name: string;
     price_prazo: number;
-    price_avista: number;
     is_active: boolean;
 }
 
@@ -34,7 +33,7 @@ export default function PriceTablePage() {
     const [open, setOpen]       = useState(false);
     const [editing, setEditing] = useState<PriceItem | null>(null);
     const [saving, setSaving]   = useState(false);
-    const [form, setForm]       = useState({ name: "", price_prazo: "", price_avista: "", is_active: true });
+    const [form, setForm]       = useState({ name: "", price_prazo: "", is_active: true });
     const [dragId, setDragId]   = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
 
@@ -58,7 +57,7 @@ export default function PriceTablePage() {
 
     const openNew = () => {
         setEditing(null);
-        setForm({ name: "", price_prazo: "", price_avista: "", is_active: true });
+        setForm({ name: "", price_prazo: "", is_active: true });
         setOpen(true);
     };
 
@@ -67,7 +66,6 @@ export default function PriceTablePage() {
         setForm({
             name:        item.name,
             price_prazo: String(item.price_prazo),
-            price_avista: String(item.price_avista),
             is_active:   item.is_active,
         });
         setOpen(true);
@@ -81,7 +79,6 @@ export default function PriceTablePage() {
             const body = {
                 name:        form.name.trim(),
                 price_prazo: parseFloat(form.price_prazo.replace(',', '.')) || 0,
-                price_avista: parseFloat(form.price_avista.replace(',', '.')) || 0,
                 is_active:   form.is_active,
             };
 
@@ -150,11 +147,10 @@ export default function PriceTablePage() {
                 </CardHeader>
                 <CardContent>
                     {/* cabeçalho */}
-                    <div className="grid grid-cols-[2rem_1fr_6rem_6rem_5rem_3rem] text-[10px] text-slate-400 font-semibold px-3 py-1 border-b">
+                    <div className="grid grid-cols-[2rem_1fr_8rem_5rem_3rem] text-[10px] text-slate-400 font-semibold px-3 py-1 border-b">
                         <span>#</span>
                         <span>Tipo de Móvel</span>
-                        <span className="text-right">A Prazo/m²</span>
-                        <span className="text-right">À Vista/m²</span>
+                        <span className="text-right">Valor/m²</span>
                         <span className="text-center">Ativo</span>
                         <span />
                     </div>
@@ -167,7 +163,7 @@ export default function PriceTablePage() {
                                 onDragEnd={() => { setDragId(null); setDragOverId(null); }}
                                 onDragOver={e => { e.preventDefault(); setDragOverId(item.id); }}
                                 onDrop={e => { e.preventDefault(); if (dragId) handleDrop(dragId, item.id); setDragId(null); setDragOverId(null); }}
-                                className={`grid grid-cols-[2rem_1fr_6rem_6rem_5rem_3rem] items-center px-3 py-2 rounded-lg border text-sm transition-all
+                                className={`grid grid-cols-[2rem_1fr_8rem_5rem_3rem] items-center px-3 py-2 rounded-lg border text-sm transition-all
                                     ${dragId === item.id ? 'opacity-40' : ''}
                                     ${dragOverId === item.id && dragId !== item.id ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' : 'bg-white dark:bg-zinc-900 border-slate-100 dark:border-zinc-800'}
                                 `}
@@ -180,7 +176,6 @@ export default function PriceTablePage() {
                                     {item.name}
                                 </span>
                                 <span className="text-right text-indigo-600 font-semibold">{fmt(item.price_prazo)}</span>
-                                <span className="text-right text-emerald-600 font-semibold">{fmt(item.price_avista)}</span>
                                 <span className="flex justify-center">
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${item.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
                                         {item.is_active ? 'Ativo' : 'Inativo'}
@@ -214,21 +209,12 @@ export default function PriceTablePage() {
                             <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                                 placeholder="Ex: Armário (Branco) Cozinha" />
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <Label>Preço A Prazo (R$/m²)</Label>
-                                <Input type="number" min={0} step={0.01}
-                                    value={form.price_prazo}
-                                    onChange={e => setForm(p => ({ ...p, price_prazo: e.target.value }))}
-                                    placeholder="1600.00" />
-                            </div>
-                            <div className="space-y-1">
-                                <Label>Preço À Vista (R$/m²)</Label>
-                                <Input type="number" min={0} step={0.01}
-                                    value={form.price_avista}
-                                    onChange={e => setForm(p => ({ ...p, price_avista: e.target.value }))}
-                                    placeholder="1440.00" />
-                            </div>
+                        <div className="space-y-1">
+                            <Label>Valor/m² (R$)</Label>
+                            <Input type="number" min={0} step={0.01}
+                                value={form.price_prazo}
+                                onChange={e => setForm(p => ({ ...p, price_prazo: e.target.value }))}
+                                placeholder="1600.00" />
                         </div>
                         <div className="flex items-center gap-3">
                             <Switch id="is_active" checked={form.is_active}
