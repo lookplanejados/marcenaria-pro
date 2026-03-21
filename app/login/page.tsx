@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AuthService } from "@/services/authService";
-import { AlertCircle, Lock } from "lucide-react";
+import { AlertCircle, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
@@ -22,13 +23,11 @@ export default function LoginPage() {
         setErrorMsg("");
 
         try {
-            // Fluxo de Login
             await AuthService.login(email, password);
             router.push("/dashboard");
         } catch (err: any) {
             let msg = err.message || "Ocorreu um erro ao processar a autenticação.";
 
-            // Tratamento e Tradução de Erros Comuns do Supabase
             if (msg.includes("Failed to fetch")) {
                 msg = "Falha de conexão: O navegador não conseguiu acessar o banco. Verifique se salvou o arquivo .env com a URL correta do Supabase, ou desative os escudos (adblockers) do seu navegador.";
             } else if (msg.includes("Invalid login credentials")) {
@@ -61,7 +60,7 @@ export default function LoginPage() {
                     <form onSubmit={handleAuthAction} className="space-y-4">
                         {errorMsg && (
                             <div className="bg-red-50 text-red-600 p-3 rounded-md flex items-center text-sm">
-                                <AlertCircle className="h-4 w-4 mr-2" />
+                                <AlertCircle className="h-4 w-4 mr-2 shrink-0" />
                                 {errorMsg}
                             </div>
                         )}
@@ -83,13 +82,24 @@ export default function LoginPage() {
                                 <Label htmlFor="password">Senha</Label>
                                 <a href="/forgot-password" className="text-xs text-indigo-600 font-medium hover:underline">Esqueceu a senha?</a>
                             </div>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                                required
-                            />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    required
+                                    className="pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(v => !v)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
                         </div>
 
                         <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={loading}>

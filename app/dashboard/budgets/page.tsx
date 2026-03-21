@@ -1,0 +1,334 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useRBAC } from "@/components/rbac-provider";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { AuthService } from "@/services/authService";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, FileText, Share2, Trash2, Search, Eye } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+
+interface Budget {
+    id: string;
+    client_name: string;
+    budget_number: string;
+    payment_type: string;
+    total_prazo: number;
+    total_avista: number;
+    status: 'draft' | 'sent' | 'approved' | 'rejected';
+    created_at: string;
+    profiles?: { full_name: string };
+}
+
+interface Client { id: string; name: string; address?: string; }
+
+const STATUS_LABELS: Record<string, string> = {
+    draft:    "Rascunho",
+    sent:     "Enviado",
+    approved: "Aprovado",
+    rejected: "Rejeitado",
+};
+const STATUS_COLORS: Record<string, string> = {
+    draft:    "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+    sent:     "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    rejected: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300",
+};
+
+const fmt = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
+
+export default function BudgetsPage() {
+    const { isCarpenter, loading } = useRBAC();
+    const router = useRouter();
+
+    const [budgets, setBudgets]     = useState<Budget[]>([]);
+    const [total, setTotal]         = useState(0);
+    const [page, setPage]           = useState(1);
+    const [search, setSearch]       = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [fetching, setFetching]   = useState(false);
+
+    // dialog novo orçamento
+    const [openNew, setOpenNew]     = useState(false);
+    const [clients, setClients]     = useState<Client[]>([]);
+    const [creating, setCreating]   = useState(false);
+    const [newForm, setNewForm]     = useState({
+        client_id: "", client_name: "", client_address: "",
+        payment_type: "both",
+        prazo_entry_percent: 30, prazo_installments: 12,
+        avista_discount_percent: 10, avista_entry_percent: 50,
+    });
+
+    useEffect(() => {
+        if (!loading && isCarpenter) router.replace("/dashboard");
+    }, [loading, isCarpenter, router]);
+
+    const authHeader = async () => {
+        const tok = await AuthService.getAccessToken();
+        return { Authorization: `Bearer ${tok}` };
+    };
+
+    const load = useCallback(async () => {
+        setFetching(true);
+        try {
+            const h = await authHeader();
+            const params = new URLSearchParams({ page: String(page) });
+            if (search) params.set('search', search);
+            if (statusFilter !== 'all') params.set('status', statusFilter);
+            const res = await fetch(`/api/budgets?${params}`, { headers: h });
+            const data = await res.json();
+            setBudgets(data.data || []);
+            setTotal(data.total || 0);
+        } finally {
+            setFetching(false);
+        }
+    }, [page, search, statusFilter]);
+
+    useEffect(() => { if (!isCarpenter) load(); }, [load, isCarpenter]);
+
+    // carrega clientes para o dialog
+    useEffect(() => {
+        if (!openNew) return;
+        supabase.from('clients').select('id, name, address').order('name').then(({ data }) => setClients(data || []));
+    }, [openNew]);
+
+    const handleClientSelect = (clientId: string) => {
+        const c = clients.find(c => c.id === clientId);
+        setNewForm(p => ({ ...p, client_id: clientId, client_name: c?.name || "", client_address: c?.address || "" }));
+    };
+
+    const handleCreate = async () => {
+        if (!newForm.client_name.trim()) { toast.error("Selecione ou informe o cliente."); return; }
+        setCreating(true);
+        try {
+            const h = await authHeader();
+            const res = await fetch('/api/budgets', {
+                method: 'POST',
+                headers: { ...h, 'Content-Type': 'application/json' },
+                body: JSON.stringify(newForm),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            toast.success("Orçamento criado!");
+            setOpenNew(false);
+            router.push(`/dashboard/budgets/${data.id}?new=true`);
+        } catch (e: any) {
+            toast.error(e.message);
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Excluir este orçamento?")) return;
+        const h = await authHeader();
+        await fetch(`/api/budgets/${id}`, { method: 'DELETE', headers: h });
+        toast.success("Orçamento excluído.");
+        load();
+    };
+
+    const handleShare = async (id: string) => {
+        const h = await authHeader();
+        const res = await fetch(`/api/budgets/${id}/share`, { headers: h });
+        const { public_url } = await res.json();
+        await navigator.clipboard.writeText(public_url);
+        toast.success("Link copiado para a área de transferência!", { description: public_url });
+    };
+
+    const limit = 20;
+    const totalPages = Math.ceil(total / limit);
+
+    return (
+        <div className="space-y-5">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Orçamentos</h2>
+                    <p className="text-sm text-slate-500">{total} orçamento{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}</p>
+                </div>
+                <Button onClick={() => setOpenNew(true)}>
+                    <Plus className="h-4 w-4 mr-2" />Novo Orçamento
+                </Button>
+            </div>
+
+            {/* Filtros */}
+            <div className="flex gap-3 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input className="pl-9 h-9" placeholder="Buscar por cliente..."
+                        value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+                </div>
+                <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
+                    <SelectTrigger className="h-9 w-40">
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="draft">Rascunho</SelectItem>
+                        <SelectItem value="sent">Enviado</SelectItem>
+                        <SelectItem value="approved">Aprovado</SelectItem>
+                        <SelectItem value="rejected">Rejeitado</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {/* Tabela */}
+            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 overflow-hidden">
+                <div className="grid grid-cols-[1fr_1fr_6rem_6rem_5.5rem_7rem_6rem] text-[10px] text-slate-400 font-semibold px-4 py-2 border-b bg-slate-50 dark:bg-zinc-950 dark:border-zinc-800">
+                    <span>Cliente</span>
+                    <span>Nº Orçamento</span>
+                    <span className="text-right">A Prazo</span>
+                    <span className="text-right">À Vista</span>
+                    <span className="text-center">Status</span>
+                    <span>Data</span>
+                    <span />
+                </div>
+
+                {fetching ? (
+                    <p className="text-sm text-slate-400 text-center py-8 animate-pulse">Carregando...</p>
+                ) : budgets.length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-8">Nenhum orçamento encontrado.</p>
+                ) : (
+                    budgets.map(b => (
+                        <div key={b.id}
+                            className="grid grid-cols-[1fr_1fr_6rem_6rem_5.5rem_7rem_6rem] items-center px-4 py-3 border-b last:border-b-0 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer text-sm"
+                            onClick={() => router.push(`/dashboard/budgets/${b.id}`)}
+                        >
+                            <span className="font-medium truncate">{b.client_name}</span>
+                            <span className="text-slate-500 text-xs">{b.budget_number || '—'}</span>
+                            <span className="text-right text-indigo-600 font-semibold">{fmt(b.total_prazo)}</span>
+                            <span className="text-right text-emerald-600 font-semibold">{fmt(b.total_avista)}</span>
+                            <span className="flex justify-center">
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[b.status]}`}>
+                                    {STATUS_LABELS[b.status]}
+                                </span>
+                            </span>
+                            <span className="text-xs text-slate-400">
+                                {new Date(b.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" title="Ver"
+                                    onClick={() => router.push(`/dashboard/budgets/${b.id}`)}>
+                                    <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" title="Compartilhar"
+                                    onClick={() => handleShare(b.id)}>
+                                    <Share2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-600" title="Excluir"
+                                    onClick={() => handleDelete(b.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Paginação */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2">
+                    <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
+                    <span className="text-sm text-slate-500">{page} / {totalPages}</span>
+                    <Button size="sm" variant="outline" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Próxima</Button>
+                </div>
+            )}
+
+            {/* Dialog Novo Orçamento */}
+            <Dialog open={openNew} onOpenChange={setOpenNew}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Novo Orçamento</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-1">
+                            <Label>Cliente</Label>
+                            <Select value={newForm.client_id} onValueChange={handleClientSelect}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione um cliente..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {clients.map(c => (
+                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {!newForm.client_id && (
+                            <div className="space-y-1">
+                                <Label>Ou digite o nome manualmente</Label>
+                                <Input placeholder="Nome do cliente"
+                                    value={newForm.client_name}
+                                    onChange={e => setNewForm(p => ({ ...p, client_name: e.target.value }))} />
+                            </div>
+                        )}
+
+                        <div className="space-y-1">
+                            <Label>Endereço</Label>
+                            <Input placeholder="Endereço do cliente"
+                                value={newForm.client_address}
+                                onChange={e => setNewForm(p => ({ ...p, client_address: e.target.value }))} />
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label>Tipo de Pagamento</Label>
+                            <Select value={newForm.payment_type} onValueChange={v => setNewForm(p => ({ ...p, payment_type: v }))}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="both">A Prazo e À Vista</SelectItem>
+                                    <SelectItem value="prazo">Somente A Prazo</SelectItem>
+                                    <SelectItem value="avista">Somente À Vista</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {(newForm.payment_type === 'prazo' || newForm.payment_type === 'both') && (
+                            <div className="grid grid-cols-2 gap-3 p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-lg">
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Entrada A Prazo (%)</Label>
+                                    <Input type="number" className="h-8" value={newForm.prazo_entry_percent}
+                                        onChange={e => setNewForm(p => ({ ...p, prazo_entry_percent: parseFloat(e.target.value) || 0 }))} />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Nº de Parcelas</Label>
+                                    <Input type="number" className="h-8" value={newForm.prazo_installments}
+                                        onChange={e => setNewForm(p => ({ ...p, prazo_installments: parseInt(e.target.value) || 1 }))} />
+                                </div>
+                            </div>
+                        )}
+
+                        {(newForm.payment_type === 'avista' || newForm.payment_type === 'both') && (
+                            <div className="grid grid-cols-2 gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg">
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Desconto À Vista (%)</Label>
+                                    <Input type="number" className="h-8" value={newForm.avista_discount_percent}
+                                        onChange={e => setNewForm(p => ({ ...p, avista_discount_percent: parseFloat(e.target.value) || 0 }))} />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs">Entrada À Vista (%)</Label>
+                                    <Input type="number" className="h-8" value={newForm.avista_entry_percent}
+                                        onChange={e => setNewForm(p => ({ ...p, avista_entry_percent: parseFloat(e.target.value) || 0 }))} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setOpenNew(false)}>Cancelar</Button>
+                        <Button onClick={handleCreate} disabled={creating}>
+                            {creating ? "Criando..." : "Criar e Adicionar Itens →"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}

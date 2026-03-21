@@ -1,0 +1,38 @@
+import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase-admin';
+
+export async function GET(req: Request, { params }: { params: { token: string } }) {
+    try {
+        const { data: budget, error } = await supabaseAdmin
+            .from('budgets')
+            .select('id, client_name, client_address, budget_number, payment_type, total_prazo, total_avista, prazo_entry_percent, prazo_installments, avista_discount_percent, avista_entry_percent, observations, status, created_at')
+            .eq('public_token', params.token)
+            .single();
+
+        if (error || !budget) {
+            return NextResponse.json({ error: 'Orçamento não encontrado.' }, { status: 404 });
+        }
+
+        const { data: environments } = await supabaseAdmin
+            .from('budget_environments')
+            .select('*')
+            .eq('budget_id', budget.id)
+            .order('position');
+
+        const { data: items } = await supabaseAdmin
+            .from('budget_items')
+            .select('id, environment_id, description, qty, alt_cm, larg_cm, prof_cm, price_prazo_m2, price_avista_m2, value_prazo, value_avista, is_active, position')
+            .eq('budget_id', budget.id)
+            .order('position');
+
+        return NextResponse.json({
+            ...budget,
+            environments: (environments || []).map(env => ({
+                ...env,
+                items: (items || []).filter(i => i.environment_id === env.id),
+            })),
+        });
+    } catch (e: any) {
+        return NextResponse.json({ error: e.message }, { status: 500 });
+    }
+}

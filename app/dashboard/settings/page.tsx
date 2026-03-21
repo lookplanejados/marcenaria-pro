@@ -14,7 +14,7 @@ import { TeamManager } from "@/components/team-manager";
 
 export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
-    const { profile, isSysadmin, isAdmin } = useRBAC();
+    const { profile, isSysadmin, isOwner, isOffice } = useRBAC();
 
     const [loading, setLoading] = useState(false);
     const [companyData, setCompanyData] = useState({
@@ -69,7 +69,7 @@ export default function SettingsPage() {
         }
     };
 
-    const isCompanyEditable = isSysadmin || isAdmin;
+    const isCompanyEditable = isSysadmin || isOwner || isOffice;
 
     return (
         <div className="flex flex-col gap-8 max-w-2xl">

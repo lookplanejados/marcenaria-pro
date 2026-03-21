@@ -1,144 +1,146 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useRBAC } from "@/components/rbac-provider";
-import { Save, User, Building2, Shield } from "lucide-react";
+import { Phone, MapPin, Check } from "lucide-react";
+
+const ROLE_INFO: Record<string, { label: string; color: string }> = {
+    sysadmin: { label: "Super Admin",      color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
+    owner:    { label: "Proprietário",     color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" },
+    office:   { label: "Escritório / Adm", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+    seller:   { label: "Vendedor",         color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+    carpenter:{ label: "Marceneiro",       color: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
+};
 
 export default function ProfilePage() {
     const { profile } = useRBAC();
-    const [fullName, setFullName] = useState("");
-    const [orgName, setOrgName] = useState("");
-    const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState("");
+    const [fullName, setFullName] = useState("");
+    const [phone, setPhone] = useState("");
+    const [address, setAddress] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [saved, setSaved] = useState(false);
 
     useEffect(() => {
-        const loadData = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+        if (!profile?.id) return;
+        supabase.auth.getUser().then(({ data: { user } }) => {
             if (user) setEmail(user.email || "");
-
-            if (profile?.full_name) setFullName(profile.full_name);
-
-            if (profile?.organization_id) {
-                const { data: org } = await supabase
-                    .from("organizations")
-                    .select("name")
-                    .eq("id", profile.organization_id)
-                    .single();
-                if (org) setOrgName(org.name);
-            }
-        };
-        loadData();
+        });
+        supabase.from("profiles")
+            .select("full_name, phone, address")
+            .eq("id", profile.id)
+            .single()
+            .then(({ data }) => {
+                if (!data) return;
+                setFullName(data.full_name || "");
+                setPhone(data.phone || "");
+                setAddress(data.address || "");
+            });
     }, [profile]);
 
     const handleSave = async () => {
+        if (!profile?.id) return;
+        setLoading(true);
         try {
-            setLoading(true);
-
-            // Atualizar nome do perfil
-            if (profile?.id) {
-                const { error } = await supabase
-                    .from("profiles")
-                    .update({ full_name: fullName })
-                    .eq("id", profile.id);
-                if (error) throw error;
-            }
-
-            // Atualizar nome da organização
-            if (profile?.organization_id && orgName) {
-                const { error } = await supabase
-                    .from("organizations")
-                    .update({ name: orgName })
-                    .eq("id", profile.organization_id);
-                if (error) throw error;
-            }
-
-            toast.success("Perfil atualizado!", { description: "As alterações foram salvas." });
+            const { error } = await supabase
+                .from("profiles")
+                .update({ phone, address })
+                .eq("id", profile.id);
+            if (error) throw error;
+            setSaved(true);
+            toast.success("Perfil salvo!");
+            setTimeout(() => setSaved(false), 2500);
         } catch (err: any) {
-            toast.error("Erro ao salvar", { description: err.message });
+            toast.error(err.message);
         } finally {
             setLoading(false);
         }
     };
 
-    const roleLabels: Record<string, { label: string; color: string; desc: string }> = {
-        sysadmin: {
-            label: "Admin Geral",
-            color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-            desc: "Acesso e gerenciamento global do sistema. Controle completo sobre todas as organizações e funções.",
-        },
-        admin: {
-            label: "Administrador",
-            color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-            desc: "Acesso a todos os módulos. Pode gerenciar usuários e configurações dentro de sua organização.",
-        },
-        carpenter: {
-            label: "Marceneiro",
-            color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-            desc: "Acesso limitado ao Kanban de produção e configurações pessoais.",
-        },
-    };
-
-    const currentRole = profile?.role ? roleLabels[profile.role] : undefined;
+    const roleInfo = profile?.role ? ROLE_INFO[profile.role] : undefined;
+    const initials = fullName
+        ? fullName.trim().split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+        : "?";
 
     return (
-        <div className="flex flex-col gap-6 max-w-2xl">
-            <header>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Meu Perfil</h1>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Gerencie seus dados pessoais e da sua marcenaria</p>
-            </header>
+        <div className="max-w-sm mx-auto pt-4 pb-10 space-y-6">
 
-            {/* Card de Informações */}
-            <div className="bg-white dark:bg-zinc-950 rounded-xl border border-black/5 dark:border-white/5 shadow-sm p-6 space-y-6">
-                {/* Avatar e Role */}
-                <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
-                        <span className="text-2xl font-bold text-white">
-                            {fullName ? fullName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "MP"}
+            {/* Avatar + identidade */}
+            <div className="flex flex-col items-center gap-3 pt-2">
+                <div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                    <span className="text-3xl font-bold text-primary-foreground">{initials}</span>
+                </div>
+                <div className="text-center">
+                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                        {fullName || "Seu Nome"}
+                    </p>
+                    <p className="text-sm text-slate-400 mt-0.5">{email}</p>
+                    {roleInfo && (
+                        <span className={`inline-block text-xs font-semibold px-3 py-0.5 rounded-full mt-2 ${roleInfo.color}`}>
+                            {roleInfo.label}
                         </span>
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{fullName || "Usuário"}</h2>
-                        <p className="text-xs text-slate-400">{email}</p>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${currentRole?.color || "bg-slate-100 text-slate-700"}`}>
-                            {currentRole?.label || "Perfil Desconhecido"}
-                        </span>
-                    </div>
+                    )}
                 </div>
+            </div>
 
-                {/* Role Description */}
-                <div className="bg-slate-50 dark:bg-zinc-900 rounded-lg p-3 flex items-start gap-3">
-                    <Shield className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
-                    <div>
-                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nível de Acesso: {currentRole?.label || "N/A"}</p>
-                        <p className="text-[10px] text-slate-500">{currentRole?.desc || "Não foi possível carregar as propriedades deste perfil."}</p>
-                    </div>
-                </div>
+            {/* Campos editáveis */}
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm divide-y divide-slate-100 dark:divide-zinc-800">
 
-                {/* Form */}
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2"><User className="h-3.5 w-3.5" /> Nome Completo</Label>
-                        <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Seu nome" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2"><Building2 className="h-3.5 w-3.5" /> Nome da Marcenaria</Label>
-                        <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Ex: Look Planejados" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label className="text-slate-400">E-mail (não editável)</Label>
-                        <Input value={email} disabled className="bg-slate-50 dark:bg-zinc-900" />
-                    </div>
-                </div>
+                <Field label="Nome">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 py-2">{fullName || "—"}</p>
+                </Field>
 
-                <Button onClick={handleSave} disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700">
-                    <Save className="h-4 w-4 mr-2" />
-                    {loading ? "Salvando..." : "Salvar Alterações"}
-                </Button>
+                <Field label="E-mail">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 py-2">{email || "—"}</p>
+                </Field>
+
+                <Field label="Telefone" icon={<Phone className="h-4 w-4 text-slate-400" />}>
+                    <Input
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                        className="border-0 shadow-none focus-visible:ring-0 h-9 px-0 text-sm"
+                    />
+                </Field>
+
+                <Field label="Endereço" icon={<MapPin className="h-4 w-4 text-slate-400" />}>
+                    <Input
+                        value={address}
+                        onChange={e => setAddress(e.target.value)}
+                        placeholder="Rua, Número, Bairro"
+                        className="border-0 shadow-none focus-visible:ring-0 h-9 px-0 text-sm"
+                    />
+                </Field>
+            </div>
+
+            <Button
+                onClick={handleSave}
+                disabled={loading}
+                className="w-full h-11 text-base font-semibold rounded-xl"
+            >
+                {saved ? (
+                    <><Check className="h-4 w-4 mr-2" />Salvo!</>
+                ) : loading ? "Salvando..." : "Salvar"}
+            </Button>
+        </div>
+    );
+}
+
+function Field({ label, icon, children }: {
+    label: string;
+    icon?: React.ReactNode;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="flex items-start gap-3 px-4 py-3">
+            {icon && <div className="mt-3 shrink-0">{icon}</div>}
+            <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide leading-none mb-0.5">{label}</p>
+                {children}
             </div>
         </div>
     );

@@ -39,7 +39,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Perfil não encontrado' }, { status: 403 });
         }
 
-        if (callerProfile.role !== 'sysadmin' && callerProfile.role !== 'admin') {
+        if (!['sysadmin', 'owner', 'office'].includes(callerProfile.role)) {
             return NextResponse.json({ error: 'Apenas administradores podem convidar usuários.' }, { status: 403 });
         }
 

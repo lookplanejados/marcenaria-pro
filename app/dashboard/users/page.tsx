@@ -22,7 +22,7 @@ import { DataPagination } from "@/components/ui/data-pagination";
 import { useRouter } from "next/navigation";
 
 export default function UsersPage() {
-    const { isSysadmin, isAdmin, profile, loading: rbacLoading } = useRBAC();
+    const { isSysadmin, isOwner, isOffice, canManageUsers, profile, loading: rbacLoading } = useRBAC();
     const router = useRouter();
 
     const [users, setUsers] = useState<any[]>([]);
@@ -61,18 +61,19 @@ export default function UsersPage() {
 
     useEffect(() => {
         if (!rbacLoading) {
-            if (!isSysadmin && !isAdmin) {
+            if (!canManageUsers) {
                 router.push("/dashboard");
                 return;
             }
             fetchData();
         }
-    }, [rbacLoading, isSysadmin, isAdmin, router]);
+    }, [rbacLoading, canManageUsers, router]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
             await Promise.all([fetchUsers(), isSysadmin ? fetchOrganizations() : null]);
+
         } finally {
             setLoading(false);
         }
@@ -218,15 +219,25 @@ export default function UsersPage() {
     };
 
     const getRoleName = (r: string) => {
-        if (r === 'sysadmin') return 'Admin Geral';
-        if (r === 'admin') return 'Admin Marcenaria';
-        return 'Marceneiro';
+        const map: Record<string, string> = {
+            sysadmin:  'Super Admin',
+            owner:     'Proprietário',
+            office:    'Escritório / Adm',
+            seller:    'Vendedor',
+            carpenter: 'Marceneiro',
+        };
+        return map[r] || r;
     };
 
     const getRoleColor = (r: string) => {
-        if (r === 'sysadmin') return 'bg-purple-50 text-purple-700 border-purple-200';
-        if (r === 'admin') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        const map: Record<string, string> = {
+            sysadmin:  'bg-purple-50 text-purple-700 border-purple-200',
+            owner:     'bg-indigo-50 text-indigo-700 border-indigo-200',
+            office:    'bg-emerald-50 text-emerald-700 border-emerald-200',
+            seller:    'bg-amber-50 text-amber-700 border-amber-200',
+            carpenter: 'bg-orange-50 text-orange-700 border-orange-200',
+        };
+        return map[r] || 'bg-slate-50 text-slate-600 border-slate-200';
     };
 
     const filteredUsers = users.filter(u => {
@@ -239,7 +250,7 @@ export default function UsersPage() {
     const paginatedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     if (rbacLoading) return <div className="p-8 text-center text-slate-500">Carregando permissões...</div>;
-    if (!isSysadmin && !isAdmin) return null;
+    if (!canManageUsers) return null;
 
     return (
         <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -270,8 +281,10 @@ export default function UsersPage() {
                             <SelectTrigger className="w-full sm:w-40 h-9 bg-white border-slate-200 shadow-sm"><SelectValue placeholder="Perfil" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Filtro: Perfis</SelectItem>
-                                {isSysadmin && <SelectItem value="sysadmin">Admin Geral</SelectItem>}
-                                <SelectItem value="admin">Admin Marcenaria</SelectItem>
+                                {isSysadmin && <SelectItem value="sysadmin">Super Admin</SelectItem>}
+                                <SelectItem value="owner">Proprietário</SelectItem>
+                                <SelectItem value="office">Escritório / Adm</SelectItem>
+                                <SelectItem value="seller">Vendedor</SelectItem>
                                 <SelectItem value="carpenter">Marceneiro</SelectItem>
                             </SelectContent>
                         </Select>
@@ -300,7 +313,7 @@ export default function UsersPage() {
                                     <TableHead>Nome e E-mail</TableHead>
                                     <TableHead>Perfil</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Marcenaria (Tenant)</TableHead>
+                                    {isSysadmin && <TableHead>Marcenaria</TableHead>}
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -330,9 +343,11 @@ export default function UsersPage() {
                                                     <span className="text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">Inativo</span>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="text-slate-600">
-                                                {user.organizations?.name || <span className="text-slate-400 italic">Global (Sem restrição)</span>}
-                                            </TableCell>
+                                            {isSysadmin && (
+                                                <TableCell className="text-slate-600">
+                                                    {user.organizations?.name || <span className="text-slate-400 italic">Global</span>}
+                                                </TableCell>
+                                            )}
                                             <TableCell className="text-right flex items-center justify-end gap-1">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-indigo-600" onClick={() => handleOpenEdit(user)} title="Editar">
                                                     <Edit2 className="h-4 w-4" />
@@ -382,9 +397,11 @@ export default function UsersPage() {
                                     <Select value={role} onValueChange={setRole}>
                                         <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            {isSysadmin && <SelectItem value="sysadmin">Admin Geral (Sysadmin)</SelectItem>}
-                                            <SelectItem value="admin">Admin da Marcenaria</SelectItem>
-                                            <SelectItem value="carpenter">Marceneiro (Padrão)</SelectItem>
+                                            {isSysadmin && <SelectItem value="sysadmin">Super Admin (Global)</SelectItem>}
+                                            <SelectItem value="owner">Proprietário (Acesso Total)</SelectItem>
+                                            <SelectItem value="office">Escritório / Adm (Financeiro)</SelectItem>
+                                            <SelectItem value="seller">Vendedor (Comercial)</SelectItem>
+                                            <SelectItem value="carpenter">Marceneiro (Produção)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

@@ -36,11 +36,12 @@ async function getCallerProfile(req: Request) {
 export async function GET(req: Request) {
     try {
         const caller = await getCallerProfile(req);
-        if (!caller || !['sysadmin', 'admin'].includes(caller.role)) {
+        const MANAGER_ROLES = ['sysadmin', 'owner', 'office'];
+        if (!caller || !MANAGER_ROLES.includes(caller.role)) {
             return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
         }
 
-        // Monta a query. Se for sysadmin, vê todos. Se for admin, vê só da sua org.
+        // Monta a query. Se for sysadmin, vê todos. Se for owner/office, vê só da sua org.
         let query = supabaseAdmin
             .from('profiles')
             .select(`
@@ -58,7 +59,7 @@ export async function GET(req: Request) {
                 organizations ( name )
             `);
 
-        if (caller.role === 'admin') {
+        if (caller.role !== 'sysadmin') {
             query = query.eq('organization_id', caller.organization_id);
         }
 
@@ -87,7 +88,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const caller = await getCallerProfile(req);
-        if (!caller || !['sysadmin', 'admin'].includes(caller.role)) {
+        const MANAGER_ROLES_W = ['sysadmin', 'owner', 'office'];
+        if (!caller || !MANAGER_ROLES_W.includes(caller.role)) {
             return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
         }
 
@@ -103,9 +105,9 @@ export async function POST(req: Request) {
         let targetOrgId = organization_id;
 
         // Regras de negócio
-        if (caller.role === 'admin') {
+        if (caller.role !== 'sysadmin') {
             if (role === 'sysadmin') {
-                return NextResponse.json({ error: "Admins não podem criar Super Admins." }, { status: 403 });
+                return NextResponse.json({ error: "Somente Super Admins podem criar Super Admins." }, { status: 403 });
             }
             // Força a organização do criador
             targetOrgId = caller.organization_id;
@@ -154,7 +156,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
     try {
         const caller = await getCallerProfile(req);
-        if (!caller || !['sysadmin', 'admin'].includes(caller.role)) {
+        if (!caller || !['sysadmin', 'owner', 'office'].includes(caller.role)) {
             return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
         }
 
@@ -165,11 +167,10 @@ export async function PUT(req: Request) {
 
         if (!id) return NextResponse.json({ error: "ID do usuário é obrigatório." }, { status: 400 });
 
-        // Validação de segurança para 'admin'
-        if (caller.role === 'admin') {
+        // Validação de segurança para não-sysadmin
+        if (caller.role !== 'sysadmin') {
             if (role === 'sysadmin') return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
-            // Verifica se o usuário que está sendo editado pertence a org dele
             const { data: targetProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', id).single();
             if (!targetProfile) return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
             if (targetProfile.role === 'sysadmin') return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
@@ -217,7 +218,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
     try {
         const caller = await getCallerProfile(req);
-        if (!caller || !['sysadmin', 'admin'].includes(caller.role)) {
+        if (!caller || !['sysadmin', 'owner', 'office'].includes(caller.role)) {
             return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
         }
 
@@ -227,8 +228,8 @@ export async function DELETE(req: Request) {
         if (!id) return NextResponse.json({ error: "ID não fornecido." }, { status: 400 });
         if (id === caller.id) return NextResponse.json({ error: "Você não pode excluir a si mesmo." }, { status: 400 });
 
-        // Validação de segurança para 'admin'
-        if (caller.role === 'admin') {
+        // Validação de segurança para não-sysadmin
+        if (caller.role !== 'sysadmin') {
             const { data: targetProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', id).single();
             if (!targetProfile) return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
             if (targetProfile.role === 'sysadmin') return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
