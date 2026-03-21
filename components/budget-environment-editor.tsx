@@ -15,6 +15,7 @@ interface PriceTableItem {
     name: string;
     price_prazo: number;
     price_avista: number;
+    is_active: boolean;
 }
 
 interface BudgetItem {

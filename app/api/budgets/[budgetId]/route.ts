@@ -11,28 +11,6 @@ async function getCallerProfile(req: Request) {
     return profile;
 }
 
-async function recalcTotals(budgetId: string) {
-    await supabaseAdmin.rpc('recalc_budget_totals' as any, { p_budget_id: budgetId }).catch(() => {
-        // fallback manual se a rpc não existir
-    });
-    const { data: items } = await supabaseAdmin
-        .from('budget_items')
-        .select('value_prazo, value_avista')
-        .eq('budget_id', budgetId)
-        .eq('is_active', true);
-
-    const total_prazo  = items?.reduce((s, i) => s + (i.value_prazo  || 0), 0) ?? 0;
-    const total_avista = items?.reduce((s, i) => s + (i.value_avista || 0), 0) ?? 0;
-
-    await supabaseAdmin.from('budgets').update({
-        total_prazo:  Math.round(total_prazo  * 100) / 100,
-        total_avista: Math.round(total_avista * 100) / 100,
-        updated_at:   new Date().toISOString(),
-    }).eq('id', budgetId);
-}
-
-export { recalcTotals };
-
 export async function GET(req: Request, { params }: { params: { budgetId: string } }) {
     try {
         const caller = await getCallerProfile(req);
