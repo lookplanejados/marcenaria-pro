@@ -15,15 +15,15 @@ export async function PATCH(req: Request, { params }: { params: { token: string 
         }
 
         const body = await req.json();
-        const { action, item_id, is_active, qty, status,
+        const { action, item_id, is_active, qty, status, chosen_payment_type,
                 prazo_entry_percent, prazo_installments,
                 avista_discount_percent, avista_entry_percent } = body;
 
         // Atualizar status do orçamento (aprovado/rejeitado pelo cliente)
         if (action === 'set_status' && status) {
-            await supabaseAdmin.from('budgets')
-                .update({ status, updated_at: new Date().toISOString() })
-                .eq('id', budget.id);
+            const updatePayload: any = { status, updated_at: new Date().toISOString() };
+            if (chosen_payment_type) updatePayload.payment_type = chosen_payment_type;
+            await supabaseAdmin.from('budgets').update(updatePayload).eq('id', budget.id);
             return NextResponse.json({ ok: true });
         }
 

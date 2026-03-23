@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { BudgetEnvironmentEditor } from "@/components/budget-environment-editor";
 import { BudgetPaymentSimulator } from "@/components/budget-payment-simulator";
-import { CheckCircle2, XCircle, Building2 } from "lucide-react";
+import { CheckCircle2, ShieldCheck, LockOpen, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PublicBudget {
@@ -40,6 +40,7 @@ export default function PublicBudgetPage() {
     const [budget, setBudget] = useState<PublicBudget | null>(null);
     const [loading, setLoading] = useState(true);
     const [acting, setActing]   = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState<'prazo' | 'avista' | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -48,6 +49,10 @@ export default function PublicBudgetPage() {
             if (!res.ok) throw new Error("Orçamento não encontrado.");
             const data = await res.json();
             setBudget(data);
+            // pré-seleciona a condição já escolhida (se não for 'both')
+            if (data.payment_type === 'prazo' || data.payment_type === 'avista') {
+                setSelectedPayment(data.payment_type);
+            }
         } catch (e: any) {
             toast.error(e.message);
         } finally {
@@ -57,16 +62,21 @@ export default function PublicBudgetPage() {
 
     useEffect(() => { load(); }, [load]);
 
-    const handleAction = async (status: 'approved' | 'rejected') => {
+    const handleAction = async (status: 'approved' | 'sent') => {
+        if (status === 'approved' && !selectedPayment) {
+            toast.error("Selecione uma condição de pagamento antes de autorizar.");
+            return;
+        }
         setActing(true);
         try {
             await fetch(`/api/public/budget/${token}/update`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'set_status', status }),
+                body: JSON.stringify({ action: 'set_status', status, chosen_payment_type: selectedPayment }),
             });
             setBudget(prev => prev ? { ...prev, status } : null);
-            toast.success(status === 'approved' ? "Orçamento aceito! A marcenaria entrará em contato." : "Orçamento recusado.");
+            if (status === 'approved') toast.success("Contrato autorizado! A marcenaria entrará em contato.");
+            else toast.success("Orçamento reaberto.");
         } finally {
             setActing(false);
         }
@@ -113,7 +123,6 @@ export default function PublicBudgetPage() {
     }
 
     const statusInfo = STATUS_MESSAGES[budget.status] || STATUS_MESSAGES.sent;
-    const isApprovedOrRejected = budget.status === 'approved' || budget.status === 'rejected';
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
@@ -157,17 +166,23 @@ export default function PublicBudgetPage() {
                     </div>
                 </div>
 
+                {/* Banner contrato autorizado */}
+                {budget.status === 'approved' && (
+                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 p-4 flex items-center gap-3">
+                        <ShieldCheck className="h-7 w-7 text-emerald-500 shrink-0" />
+                        <div>
+                            <p className="font-semibold text-emerald-700 dark:text-emerald-300">Contrato Autorizado!</p>
+                            <p className="text-sm text-emerald-600 dark:text-emerald-400">A marcenaria entrará em contato para prosseguir.</p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Ambientes */}
                 <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-3">
-                    <div>
-                        <h2 className="font-semibold text-sm">Itens do Orçamento</h2>
-                        {!isApprovedOrRejected && (
-                            <p className="text-xs text-slate-400 mt-0.5">Você pode marcar/desmarcar itens e ajustar quantidades.</p>
-                        )}
-                    </div>
+                    <h2 className="font-semibold text-sm">Itens do Orçamento</h2>
                     <BudgetEnvironmentEditor
                         token={token}
-                        readOnly={isApprovedOrRejected}
+                        readOnly={budget.status === 'approved'}
                         avistaDiscountPercent={budget.avista_discount_percent}
                         onTotalsChange={reloadTotals}
                     />
@@ -175,16 +190,16 @@ export default function PublicBudgetPage() {
 
                 {/* Condições de Pagamento */}
                 <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-3">
-                    <div>
-                        <h2 className="font-semibold text-sm">Simular Condições de Pagamento</h2>
-                        {!isApprovedOrRejected && (
-                            <p className="text-xs text-slate-400 mt-0.5">Ajuste entrada e parcelas para simular.</p>
-                        )}
+                    <div className="flex items-center gap-1.5">
+                        <h2 className="font-semibold text-sm">Escolha a condição de pagamento:</h2>
+                        {budget.status !== 'approved' && <span className="text-red-500 text-sm font-bold">*</span>}
                     </div>
                     <BudgetPaymentSimulator
                         budget={budget}
-                        onChange={isApprovedOrRejected ? undefined : handlePaymentChange}
-                        readOnly={isApprovedOrRejected}
+                        onChange={budget.status === 'approved' ? undefined : handlePaymentChange}
+                        readOnly={budget.status === 'approved'}
+                        selectedPayment={selectedPayment}
+                        onSelectPayment={budget.status === 'approved' ? undefined : setSelectedPayment}
                     />
                 </div>
 
@@ -197,32 +212,23 @@ export default function PublicBudgetPage() {
                 )}
 
                 {/* Ações */}
-                {!isApprovedOrRejected && (
-                    <div className="flex gap-3">
-                        <Button
-                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
-                            onClick={() => handleAction('approved')}
-                            disabled={acting}
-                        >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />Aceitar Orçamento
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="flex-1 text-red-500 border-red-200 hover:bg-red-50"
-                            onClick={() => handleAction('rejected')}
-                            disabled={acting}
-                        >
-                            <XCircle className="h-4 w-4 mr-2" />Recusar
-                        </Button>
-                    </div>
-                )}
-
-                {budget.status === 'approved' && (
-                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 p-4 text-center">
-                        <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                        <p className="font-semibold text-emerald-700 dark:text-emerald-300">Orçamento Aceito!</p>
-                        <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">A marcenaria entrará em contato para prosseguir com o contrato.</p>
-                    </div>
+                {budget.status !== 'approved' ? (
+                    <Button
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-12 text-base font-semibold"
+                        onClick={() => handleAction('approved')}
+                        disabled={acting}
+                    >
+                        <ShieldCheck className="h-5 w-5 mr-2" />Autorizar Contrato
+                    </Button>
+                ) : (
+                    <Button
+                        variant="outline"
+                        className="w-full text-amber-600 border-amber-300 hover:bg-amber-50 h-11"
+                        onClick={() => handleAction('sent')}
+                        disabled={acting}
+                    >
+                        <LockOpen className="h-4 w-4 mr-2" />Reabrir Orçamento
+                    </Button>
                 )}
 
                 <p className="text-center text-[10px] text-slate-300 dark:text-slate-700 pb-4">

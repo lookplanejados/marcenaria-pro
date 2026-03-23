@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { BudgetEnvironmentEditor } from "@/components/budget-environment-editor";
 import { BudgetPaymentSimulator } from "@/components/budget-payment-simulator";
 import { generateBudgetPDF } from "@/lib/generate-budget-pdf";
-import { ArrowLeft, FileText, Share2, CheckCircle2, XCircle, Copy, RotateCcw } from "lucide-react";
+import { ArrowLeft, FileText, Share2, CheckCircle2, LockOpen, Copy, RotateCcw, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Budget {
@@ -57,6 +57,7 @@ export default function BudgetDetailPage() {
     const [shareUrl, setShareUrl] = useState("");
     const [shareOpen, setShareOpen] = useState(false);
     const [orgName, setOrgName]   = useState("Marcenaria Pro");
+    const [selectedPayment, setSelectedPayment] = useState<'prazo' | 'avista' | null>(null);
 
     const obsRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -76,6 +77,10 @@ export default function BudgetDetailPage() {
             if (!res.ok) { router.replace('/dashboard/budgets'); return; }
             const data = await res.json();
             setBudget(data);
+            // pré-seleciona a condição já salva (se não for 'both')
+            if (data.payment_type === 'prazo' || data.payment_type === 'avista') {
+                setSelectedPayment(data.payment_type);
+            }
         } finally {
             setLoading(false);
         }
@@ -113,9 +118,22 @@ export default function BudgetDetailPage() {
         obsRef.current = setTimeout(() => patch(updates), 800);
     };
 
-    const handleStatus = async (status: string) => {
-        await patch({ status: status as any });
+    const handleStatus = async (status: string, paymentType?: 'prazo' | 'avista') => {
+        const updates: any = { status };
+        if (paymentType) updates.payment_type = paymentType;
+        await patch(updates);
         toast.success(`Orçamento marcado como "${STATUS_LABELS[status]}"`);
+    };
+
+    const handleApproveConfirm = async () => {
+        if (!selectedPayment) { toast.error("Selecione uma condição de pagamento na seção abaixo."); return; }
+        await handleStatus('approved', selectedPayment);
+        toast.success("Contrato autorizado! Orçamento bloqueado para edição.");
+    };
+
+    const handleReopen = async () => {
+        await handleStatus('sent');
+        toast.success("Orçamento reaberto para edição.");
     };
 
     const handleShare = async () => {
@@ -209,38 +227,37 @@ export default function BudgetDetailPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="outline" onClick={handleGeneratePDF}>
-                            <FileText className="h-4 w-4 mr-1" />Gerar PDF
+                            <FileText className="h-4 w-4 mr-1" />Baixar PDF
                         </Button>
                         <Button size="sm" variant="outline" onClick={handleShare}>
-                            <Share2 className="h-4 w-4 mr-1" />Compartilhar
+                            <Share2 className="h-4 w-4 mr-1" />Gerar Link
                         </Button>
-                        {budget.status !== 'approved' && (
+                        {budget.status !== 'approved' ? (
                             <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                                onClick={() => handleStatus('approved')}>
-                                <CheckCircle2 className="h-4 w-4 mr-1" />Aprovar
+                                onClick={handleApproveConfirm}>
+                                <ShieldCheck className="h-4 w-4 mr-1" />Autorizar Contrato
                             </Button>
-                        )}
-                        {budget.status !== 'rejected' && budget.status !== 'approved' && (
-                            <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50"
-                                onClick={() => handleStatus('rejected')}>
-                                <XCircle className="h-4 w-4 mr-1" />Rejeitar
+                        ) : (
+                            <Button size="sm" variant="outline" className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                                onClick={handleReopen}>
+                                <LockOpen className="h-4 w-4 mr-1" />Reabrir Orçamento
                             </Button>
                         )}
                     </div>
                 </div>
 
-                {/* Totais rápidos */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-indigo-50 dark:bg-indigo-900/10 p-3 text-center">
-                        <p className="text-[10px] text-indigo-500 font-semibold">TOTAL A PRAZO</p>
-                        <p className="text-lg font-bold text-indigo-700 dark:text-indigo-300">{fmt(budget.total_prazo)}</p>
-                    </div>
-                    <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/10 p-3 text-center">
-                        <p className="text-[10px] text-emerald-600 font-semibold">TOTAL À VISTA</p>
-                        <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{fmt(budget.total_avista)}</p>
+            </div>
+
+            {/* Banner contrato autorizado */}
+            {budget.status === 'approved' && (
+                <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 p-4 flex items-center gap-3">
+                    <ShieldCheck className="h-6 w-6 text-emerald-500 shrink-0" />
+                    <div>
+                        <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-sm">Contrato Autorizado</p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">Este orçamento está bloqueado. Clique em "Reabrir Orçamento" para editar.</p>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Ambientes e Itens */}
             <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-5 space-y-4">
@@ -249,16 +266,22 @@ export default function BudgetDetailPage() {
                     budgetId={id}
                     avistaDiscountPercent={budget.avista_discount_percent}
                     onTotalsChange={load}
+                    readOnly={budget.status === 'approved'}
                 />
             </div>
 
             {/* Condições de Pagamento */}
             <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-5 space-y-3">
-                <h3 className="font-semibold text-sm">Condições de Pagamento</h3>
+                <div className="flex items-center gap-1.5">
+                    <h3 className="font-semibold text-sm">Escolha a condição de pagamento:</h3>
+                    {budget.status !== 'approved' && <span className="text-red-500 text-sm font-bold">*</span>}
+                </div>
                 <BudgetPaymentSimulator
                     budget={budget}
-                    onChange={handlePaymentChange}
-                    readOnly={false}
+                    onChange={budget.status === 'approved' ? undefined : handlePaymentChange}
+                    readOnly={budget.status === 'approved'}
+                    selectedPayment={selectedPayment}
+                    onSelectPayment={budget.status === 'approved' ? undefined : setSelectedPayment}
                 />
             </div>
 
@@ -268,11 +291,19 @@ export default function BudgetDetailPage() {
                 <Textarea
                     className="text-sm resize-none"
                     rows={4}
+                    disabled={budget.status === 'approved'}
                     placeholder="Ex: Incluso portas com amortecimento, gavetas telescópicas..."
                     value={budget.observations || ""}
                     onChange={e => handleObsChange(e.target.value)}
                 />
-                <p className="text-[10px] text-slate-400">Salvo automaticamente</p>
+                {budget.status !== 'approved' && (
+                    <div className="flex justify-end">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                            Salvo automaticamente
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Modal Compartilhar */}
@@ -300,6 +331,7 @@ export default function BudgetDetailPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
         </div>
     );
 }

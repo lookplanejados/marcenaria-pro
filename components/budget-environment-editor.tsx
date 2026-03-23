@@ -316,10 +316,9 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                         {!isCollapsed && (
                             <div className="p-3 space-y-1.5">
                                 {/* cabeçalho tabela */}
-                                <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 1fr 4rem 4.5rem 4.5rem' : '2rem 1fr 4rem 4.5rem 4.5rem 3rem' }}>
+                                <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 1fr 4.5rem 4.5rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}>
                                     <span>Qtd</span>
-                                    <span>Descrição</span>
-                                    <span className="text-right">Alt×Larg</span>
+                                    <span>Descrição / Dimensões</span>
                                     <span className="text-right">A Prazo</span>
                                     <span className="text-right">À Vista</span>
                                     {!isPublic && <span />}
@@ -362,10 +361,10 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                             </div>
                                         ) : (
                                             <div
-                                                className={`grid items-center text-xs px-1 py-1 rounded transition-colors ${
+                                                className={`grid items-center text-xs px-1 py-1.5 rounded transition-colors ${
                                                     !item.is_active ? 'opacity-50 line-through' : ''
                                                 } ${isPublic ? 'hover:bg-slate-50 dark:hover:bg-zinc-900' : ''}`}
-                                                style={{ gridTemplateColumns: isPublic ? '2rem 1fr 4rem 4.5rem 4.5rem' : '2rem 1fr 4rem 4.5rem 4.5rem 3rem' }}
+                                                style={{ gridTemplateColumns: isPublic ? '2rem 1fr 4.5rem 4.5rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}
                                             >
                                                 {isPublic ? (
                                                     <input
@@ -375,33 +374,47 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                         className="h-4 w-4 accent-indigo-500"
                                                     />
                                                 ) : (
-                                                    <span className="text-slate-500">{String(item.qty % 1 === 0 ? Math.round(item.qty) : item.qty).padStart(2, '0')}</span>
+                                                    <span className="text-slate-500 self-start pt-0.5">{String(item.qty % 1 === 0 ? Math.round(item.qty) : item.qty).padStart(2, '0')}</span>
                                                 )}
 
-                                                {isPublic ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="truncate">{item.description}</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="truncate">{item.description}</span>
-                                                )}
+                                                <div className="min-w-0">
+                                                    {isPublic ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="truncate font-medium">{item.description}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="truncate font-medium block">{item.description}</span>
+                                                    )}
+                                                    {(item.alt_cm > 0 || item.larg_cm > 0 || item.prof_cm > 0) && (
+                                                        <p className="text-[10px] text-slate-400 mt-0.5 flex flex-wrap gap-x-2">
+                                                            {item.alt_cm > 0 && <span>Alt: {item.alt_cm}cm</span>}
+                                                            {item.larg_cm > 0 && <span>Larg: {item.larg_cm}cm</span>}
+                                                            {item.prof_cm > 0 && <span>Prof: {item.prof_cm}cm</span>}
+                                                            {item.alt_cm > 0 && item.larg_cm > 0 && (
+                                                                <span className="text-indigo-400 font-semibold">
+                                                                    {item.price_prazo_m2 > 0 && (
+                                                                        <>{fmt(item.price_prazo_m2)}/m² · </>
+                                                                    )}
+                                                                    {((item.alt_cm * item.larg_cm) / 10000).toFixed(2)} m²
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                    )}
+                                                    {isPublic && (
+                                                        <input
+                                                            type="number" min={1}
+                                                            className="mt-1 w-16 text-right bg-transparent border-b border-slate-200 outline-none text-xs"
+                                                            value={item.qty}
+                                                            onChange={e => handlePublicQty(item, parseFloat(e.target.value) || 1)}
+                                                        />
+                                                    )}
+                                                </div>
 
-                                                {isPublic ? (
-                                                    <input
-                                                        type="number" min={1}
-                                                        className="w-full text-right bg-transparent border-b border-slate-200 outline-none text-xs"
-                                                        value={item.qty}
-                                                        onChange={e => handlePublicQty(item, parseFloat(e.target.value) || 1)}
-                                                    />
-                                                ) : (
-                                                    <span className="text-right text-slate-400">{item.alt_cm}×{item.larg_cm}</span>
-                                                )}
-
-                                                <span className="text-right font-medium">{fmt(item.value_prazo)}</span>
-                                                <span className="text-right text-emerald-600 font-medium">{fmt(item.value_prazo * (1 - avistaDiscountPercent / 100))}</span>
+                                                <span className="text-right font-medium self-start pt-0.5">{fmt(item.value_prazo)}</span>
+                                                <span className="text-right text-emerald-600 font-medium self-start pt-0.5">{fmt(item.value_prazo * (1 - avistaDiscountPercent / 100))}</span>
 
                                                 {!isPublic && (
-                                                    <div className="flex items-center gap-1 justify-end">
+                                                    <div className="flex items-center gap-1 justify-end self-start pt-0.5">
                                                         <button onClick={() => { setEditItemId(item.id); setEditItem({}); }}
                                                             className="text-slate-300 hover:text-indigo-500 transition-colors">
                                                             <Pencil className="h-3 w-3" />
@@ -439,7 +452,9 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                         >
                                                             <option value="">-- selecione --</option>
                                                             {priceItems.filter(p => p.is_active).map(p => (
-                                                                <option key={p.id} value={p.id}>[{p.position + 1}] {p.name}</option>
+                                                                <option key={p.id} value={p.id}>
+                                                                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(p.price_prazo)}/m² — {p.name}
+                                                                </option>
                                                             ))}
                                                         </select>
                                                     </div>

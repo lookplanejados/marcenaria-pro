@@ -11,7 +11,7 @@ import {
     LayoutDashboard, Wallet, Package, Users,
     Hammer, BarChart3, Building2, CalendarDays, Truck,
     BadgeDollarSign, Sliders, ClipboardList, ScrollText,
-    UserCog, ShieldAlert, FileText, Tag,
+    UserCog, ShieldAlert, FileText, Tag, Settings,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────
@@ -57,6 +57,7 @@ const ROLES: Record<string, RoleConfig> = {
             { name: "Auditoria",              href: "/dashboard/audit",         icon: ShieldAlert },
             { name: "Config. Kanban",         href: "/dashboard/kanban-config", icon: Sliders },
             { name: "Usuários",               href: "/dashboard/users",         icon: UserCog },
+            { name: "Configurações",          href: "/dashboard/settings",      icon: Settings },
         ],
     },
     office: {

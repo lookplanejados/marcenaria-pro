@@ -64,7 +64,9 @@ export default function BudgetsPage() {
         payment_type: "both",
         prazo_entry_percent: 30, prazo_installments: 12,
         avista_discount_percent: 10, avista_entry_percent: 50,
+        observations: "",
     });
+    const selectedClient = clients.find(c => c.id === newForm.client_id);
 
     useEffect(() => {
         if (!loading && isCarpenter) router.replace("/dashboard");
@@ -93,10 +95,25 @@ export default function BudgetsPage() {
 
     useEffect(() => { if (!isCarpenter) load(); }, [load, isCarpenter]);
 
-    // carrega clientes para o dialog
+    // carrega clientes + padrões de pagamento da org ao abrir o dialog
     useEffect(() => {
         if (!openNew) return;
         supabase.from('clients').select('id, name, address').order('name').then(({ data }) => setClients(data || []));
+        authHeader().then(h =>
+            fetch('/api/settings', { headers: h })
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (data) setNewForm(p => ({
+                        ...p,
+                        payment_type:            data.default_payment_type              ?? p.payment_type,
+                        prazo_entry_percent:     data.default_prazo_entry_percent        ?? p.prazo_entry_percent,
+                        prazo_installments:      data.default_prazo_installments         ?? p.prazo_installments,
+                        avista_discount_percent: data.default_avista_discount_percent    ?? p.avista_discount_percent,
+                        avista_entry_percent:    data.default_avista_entry_percent       ?? p.avista_entry_percent,
+                        observations:            data.default_budget_observations        ?? p.observations,
+                    }));
+                })
+        );
     }, [openNew]);
 
     const handleClientSelect = (clientId: string) => {
@@ -241,14 +258,14 @@ export default function BudgetsPage() {
             )}
 
             {/* Dialog Novo Orçamento */}
-            <Dialog open={openNew} onOpenChange={setOpenNew}>
-                <DialogContent className="sm:max-w-md">
+            <Dialog open={openNew} onOpenChange={v => { setOpenNew(v); if (!v) setNewForm(p => ({ ...p, client_id: "", client_name: "", client_address: "" })); }}>
+                <DialogContent className="sm:max-w-sm">
                     <DialogHeader>
                         <DialogTitle>Novo Orçamento</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-2">
                         <div className="space-y-1">
-                            <Label>Cliente</Label>
+                            <Label>Cliente <span className="text-red-500">*</span></Label>
                             <Select value={newForm.client_id} onValueChange={handleClientSelect}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione um cliente..." />
@@ -261,70 +278,19 @@ export default function BudgetsPage() {
                             </Select>
                         </div>
 
-                        {!newForm.client_id && (
+                        {newForm.client_id && (
                             <div className="space-y-1">
-                                <Label>Ou digite o nome manualmente</Label>
-                                <Input placeholder="Nome do cliente"
-                                    value={newForm.client_name}
-                                    onChange={e => setNewForm(p => ({ ...p, client_name: e.target.value }))} />
-                            </div>
-                        )}
-
-                        <div className="space-y-1">
-                            <Label>Endereço</Label>
-                            <Input placeholder="Endereço do cliente"
-                                value={newForm.client_address}
-                                onChange={e => setNewForm(p => ({ ...p, client_address: e.target.value }))} />
-                        </div>
-
-                        <div className="space-y-1">
-                            <Label>Tipo de Pagamento</Label>
-                            <Select value={newForm.payment_type} onValueChange={v => setNewForm(p => ({ ...p, payment_type: v }))}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="both">A Prazo e À Vista</SelectItem>
-                                    <SelectItem value="prazo">Somente A Prazo</SelectItem>
-                                    <SelectItem value="avista">Somente À Vista</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {(newForm.payment_type === 'prazo' || newForm.payment_type === 'both') && (
-                            <div className="grid grid-cols-2 gap-3 p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-lg">
-                                <div className="space-y-1">
-                                    <Label className="text-xs">Entrada A Prazo (%)</Label>
-                                    <Input type="number" className="h-8" value={newForm.prazo_entry_percent}
-                                        onChange={e => setNewForm(p => ({ ...p, prazo_entry_percent: parseFloat(e.target.value) || 0 }))} />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs">Nº de Parcelas</Label>
-                                    <Input type="number" className="h-8" value={newForm.prazo_installments}
-                                        onChange={e => setNewForm(p => ({ ...p, prazo_installments: parseInt(e.target.value) || 1 }))} />
-                                </div>
-                            </div>
-                        )}
-
-                        {(newForm.payment_type === 'avista' || newForm.payment_type === 'both') && (
-                            <div className="grid grid-cols-2 gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg">
-                                <div className="space-y-1">
-                                    <Label className="text-xs">Desconto À Vista (%)</Label>
-                                    <Input type="number" className="h-8" value={newForm.avista_discount_percent}
-                                        onChange={e => setNewForm(p => ({ ...p, avista_discount_percent: parseFloat(e.target.value) || 0 }))} />
-                                </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs">Entrada À Vista (%)</Label>
-                                    <Input type="number" className="h-8" value={newForm.avista_entry_percent}
-                                        onChange={e => setNewForm(p => ({ ...p, avista_entry_percent: parseFloat(e.target.value) || 0 }))} />
-                                </div>
+                                <Label className="text-slate-500">Endereço</Label>
+                                <p className="text-sm px-3 py-2 rounded-md border bg-slate-50 dark:bg-zinc-800 dark:border-zinc-700 text-slate-500">
+                                    {selectedClient?.address || <span className="italic text-slate-400">Não cadastrado</span>}
+                                </p>
                             </div>
                         )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setOpenNew(false)}>Cancelar</Button>
-                        <Button onClick={handleCreate} disabled={creating}>
-                            {creating ? "Criando..." : "Criar e Adicionar Itens →"}
+                        <Button onClick={handleCreate} disabled={creating || !newForm.client_id}>
+                            {creating ? "Criando..." : "Criar Orçamento"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
