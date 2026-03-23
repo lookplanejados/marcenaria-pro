@@ -291,7 +291,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                     type="checkbox"
                                     checked={env.items.length > 0 && env.items.every(i => i.is_active)}
                                     onChange={() => handlePublicEnvToggle(env)}
-                                    className="h-4 w-4 accent-indigo-500 shrink-0"
+                                    className="h-5 w-5 accent-indigo-500 shrink-0"
                                     title="Marcar/desmarcar todos os itens deste ambiente"
                                 />
                             )}
@@ -343,7 +343,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                         {!isCollapsed && (
                             <div className={`space-y-1 ${isPublic ? 'px-2 py-2' : 'p-3 space-y-1.5'}`}>
                                 {/* cabeçalho tabela */}
-                                <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 2rem 1fr 4.5rem 4.5rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}>
+                                <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}>
                                     <span></span>
                                     <span>Qtd</span>
                                     <span>{isPublic ? 'Descrição' : 'Descrição / Dimensões'}</span>
@@ -392,7 +392,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                 className={`grid items-center text-xs px-1 rounded transition-colors ${
                                                     !item.is_active ? 'opacity-50 line-through' : ''
                                                 } ${isPublic ? 'py-2 hover:bg-white/60 dark:hover:bg-zinc-800/60' : 'py-1.5'}`}
-                                                style={{ gridTemplateColumns: isPublic ? '2rem 2rem 1fr 4.5rem 4.5rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}
+                                                style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}
                                             >
                                                 {isPublic ? (
                                                     <>
