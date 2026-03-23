@@ -5,8 +5,19 @@ import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { BudgetEnvironmentEditor } from "@/components/budget-environment-editor";
 import { BudgetPaymentSimulator } from "@/components/budget-payment-simulator";
-import { CheckCircle2, ShieldCheck, LockOpen, Building2 } from "lucide-react";
+import { ShieldCheck, LockOpen, MapPin, Phone, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+interface OrgData {
+    name: string;
+    company_name?: string;
+    cnpj?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    owner_name?: string;
+    logo_url?: string;
+}
 
 interface PublicBudget {
     id: string;
@@ -23,6 +34,7 @@ interface PublicBudget {
     observations: string;
     status: string;
     environments: any[];
+    org: OrgData | null;
 }
 
 const fmt = (v: number) =>
@@ -49,7 +61,6 @@ export default function PublicBudgetPage() {
             if (!res.ok) throw new Error("Orçamento não encontrado.");
             const data = await res.json();
             setBudget(data);
-            // pré-seleciona a condição já escolhida (se não for 'both')
             if (data.payment_type === 'prazo' || data.payment_type === 'avista') {
                 setSelectedPayment(data.payment_type);
             }
@@ -122,39 +133,94 @@ export default function PublicBudgetPage() {
         );
     }
 
+    const org = budget.org;
     const statusInfo = STATUS_MESSAGES[budget.status] || STATUS_MESSAGES.sent;
+
+    // Linha de info: endereço | tel | email
+    const infoLine = [
+        org?.address,
+        org?.phone   ? `Tel: ${org.phone}` : null,
+        org?.email,
+    ].filter(Boolean).join("  ·  ");
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
-            {/* Header */}
-            <div className="bg-indigo-600 text-white py-5 px-4">
-                <div className="max-w-2xl mx-auto flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-                        <Building2 className="h-5 w-5" />
+            {/* ── CABEÇALHO DA EMPRESA ─────────────────────────── */}
+            <div className="bg-indigo-700 text-white">
+                <div className="max-w-2xl mx-auto px-5 py-5">
+                    <div className="flex items-start gap-4">
+                        {/* Logo */}
+                        <div className="shrink-0">
+                            {org?.logo_url ? (
+                                <img
+                                    src={org.logo_url}
+                                    alt="Logo"
+                                    className="h-16 w-16 rounded-xl object-contain bg-white/10 p-1"
+                                />
+                            ) : (
+                                <div className="h-16 w-16 rounded-xl bg-white/20 flex items-center justify-center text-2xl font-black">
+                                    {(org?.name || "M").charAt(0).toUpperCase()}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Dados da empresa */}
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-xl font-black leading-tight tracking-tight">
+                                {org?.name || "Marcenaria"}
+                            </h1>
+                            {(org?.company_name || org?.cnpj) && (
+                                <p className="text-indigo-200 text-xs mt-0.5">
+                                    {[org?.company_name, org?.cnpj ? `CNPJ: ${org.cnpj}` : null].filter(Boolean).join("  ·  ")}
+                                </p>
+                            )}
+                            {infoLine && (
+                                <p className="text-indigo-300 text-[11px] mt-1 leading-snug flex items-start gap-1">
+                                    <MapPin className="h-3 w-3 shrink-0 mt-0.5" />
+                                    <span>{infoLine}</span>
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Responsável (canto direito) */}
+                        {org?.owner_name && (
+                            <div className="shrink-0 text-right hidden sm:block">
+                                <p className="text-[10px] text-indigo-300 uppercase tracking-wide">Responsável</p>
+                                <p className="text-sm font-semibold text-white leading-tight">{org.owner_name}</p>
+                            </div>
+                        )}
                     </div>
-                    <div>
-                        <p className="font-bold text-lg leading-tight">Marcenaria Pro</p>
-                        <p className="text-indigo-200 text-xs">Orçamento Digital</p>
+
+                    {/* Responsável em mobile (linha separada) */}
+                    {org?.owner_name && (
+                        <div className="mt-2 flex items-center gap-1.5 sm:hidden">
+                            <User className="h-3 w-3 text-indigo-300" />
+                            <p className="text-xs text-indigo-200">Resp.: {org.owner_name}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Faixa inferior do header com nº do orçamento e status */}
+                <div className="bg-indigo-800/60 px-5 py-2">
+                    <div className="max-w-2xl mx-auto flex items-center justify-between">
+                        <div>
+                            <span className="text-[10px] text-indigo-300 uppercase tracking-wide">Cliente</span>
+                            <p className="text-sm font-bold leading-tight">{budget.client_name}</p>
+                            {budget.client_address && (
+                                <p className="text-indigo-300 text-[11px]">{budget.client_address}</p>
+                            )}
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] text-indigo-300">{budget.budget_number}</p>
+                            <p className={`text-xs font-semibold mt-0.5 ${statusInfo.color.replace('text-', 'text-').replace('indigo-600', 'indigo-200').replace('emerald-600', 'emerald-300').replace('red-500', 'red-300').replace('slate-500', 'slate-300')}`}>
+                                {statusInfo.text}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-                {/* Info do cliente */}
-                <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-1">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div>
-                            <h1 className="text-xl font-bold">{budget.client_name}</h1>
-                            {budget.client_address && (
-                                <p className="text-sm text-slate-500">{budget.client_address}</p>
-                            )}
-                            <p className="text-xs text-slate-400 mt-0.5">{budget.budget_number}</p>
-                        </div>
-                        <p className={`text-sm font-semibold ${statusInfo.color}`}>{statusInfo.text}</p>
-                    </div>
-
-                </div>
-
                 {/* Banner contrato autorizado */}
                 {budget.status === 'approved' && (
                     <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 p-4 flex items-center gap-3">

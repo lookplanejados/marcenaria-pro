@@ -13,6 +13,13 @@ export async function GET(req: Request, { params }: { params: { token: string } 
             return NextResponse.json({ error: 'Orçamento não encontrado.' }, { status: 404 });
         }
 
+        // Busca dados da organização para exibir no cabeçalho
+        const { data: org } = await supabaseAdmin
+            .from('organizations')
+            .select('name, company_name, cnpj, phone, email, address, owner_name, logo_url')
+            .eq('id', (budget as any).organization_id)
+            .single();
+
         const { data: environments } = await supabaseAdmin
             .from('budget_environments')
             .select('*')
@@ -27,6 +34,7 @@ export async function GET(req: Request, { params }: { params: { token: string } 
 
         return NextResponse.json({
             ...budget,
+            org: org || null,
             environments: (environments || []).map(env => ({
                 ...env,
                 items: (items || []).filter(i => i.environment_id === env.id),

@@ -26,6 +26,8 @@ export default function SettingsPage() {
         phone: "", email: "", address: "",
         owner_name: "", owner_cpf: "", owner_phone: "",
     });
+    const [logoUrl, setLogoUrl] = useState("");
+    const [uploadingLogo, setUploadingLogo] = useState(false);
 
     const [paymentDefaults, setPaymentDefaults] = useState({
         default_payment_type: "both",
@@ -49,6 +51,7 @@ export default function SettingsPage() {
             const res = await fetch('/api/settings', { headers: h });
             if (!res.ok) return;
             const data = await res.json();
+            setLogoUrl(data.logo_url || "");
             setCompanyData({
                 name:               data.name               || "",
                 company_name:       data.company_name       || "",
@@ -72,6 +75,27 @@ export default function SettingsPage() {
         };
         fetchOrg();
     }, [profile]);
+
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingLogo(true);
+        try {
+            const h = await authHeader();
+            const form = new FormData();
+            form.append('file', file);
+            const res = await fetch('/api/settings/logo', { method: 'POST', headers: h, body: form });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setLogoUrl(data.logo_url);
+            toast.success("Logo atualizado!");
+        } catch (e: any) {
+            toast.error("Erro ao enviar logo", { description: e.message });
+        } finally {
+            setUploadingLogo(false);
+            e.target.value = "";
+        }
+    };
 
     const handleSaveCompany = async () => {
         setLoadingCompany(true);
@@ -181,6 +205,34 @@ export default function SettingsPage() {
                     </div>
                     {!isCompanyEditable && (
                         <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">Somente leitura</span>
+                    )}
+                </div>
+
+                {/* Logo */}
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Logo da Empresa</p>
+                <div className="flex items-center gap-4">
+                    <div className="h-20 w-20 rounded-xl border-2 border-dashed border-slate-200 dark:border-zinc-700 overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-zinc-900 shrink-0">
+                        {logoUrl ? (
+                            <img src={logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
+                        ) : (
+                            <Building2 className="h-8 w-8 text-slate-300" />
+                        )}
+                    </div>
+                    {isCompanyEditable && (
+                        <div className="space-y-1">
+                            <Label className="text-xs text-slate-500">PNG, JPG ou SVG — máx. 2MB</Label>
+                            <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-slate-200 dark:border-zinc-700 text-xs font-medium hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+                                {uploadingLogo ? "Enviando..." : "Escolher arquivo"}
+                                <input
+                                    type="file" accept="image/*" className="hidden"
+                                    onChange={handleLogoUpload}
+                                    disabled={uploadingLogo}
+                                />
+                            </label>
+                            {logoUrl && (
+                                <p className="text-[10px] text-emerald-500 font-medium">✓ Logo cadastrado</p>
+                            )}
+                        </div>
                     )}
                 </div>
 

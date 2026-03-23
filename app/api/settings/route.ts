@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
     const { data, error } = await supabaseAdmin
         .from('organizations')
-        .select('name, company_name, cnpj, state_registration, phone, email, address, owner_name, owner_cpf, owner_phone, default_payment_type, default_prazo_entry_percent, default_prazo_installments, default_avista_discount_percent, default_avista_entry_percent, default_budget_observations')
+        .select('name, company_name, cnpj, state_registration, phone, email, address, owner_name, owner_cpf, owner_phone, logo_url, default_payment_type, default_prazo_entry_percent, default_prazo_installments, default_avista_discount_percent, default_avista_entry_percent, default_budget_observations')
         .eq('id', profile.organization_id)
         .single();
 
