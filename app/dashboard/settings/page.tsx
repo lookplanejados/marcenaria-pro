@@ -22,7 +22,9 @@ export default function SettingsPage() {
     const [loadingObs, setLoadingObs] = useState(false);
 
     const [companyData, setCompanyData] = useState({
-        name: "", cnpj: "", phone: "", email: "", address: "",
+        name: "", company_name: "", cnpj: "", state_registration: "",
+        phone: "", email: "", address: "",
+        owner_name: "", owner_cpf: "", owner_phone: "",
     });
 
     const [paymentDefaults, setPaymentDefaults] = useState({
@@ -48,11 +50,16 @@ export default function SettingsPage() {
             if (!res.ok) return;
             const data = await res.json();
             setCompanyData({
-                name:    data.name    || "",
-                cnpj:    data.cnpj    || "",
-                phone:   data.phone   || "",
-                email:   data.email   || "",
-                address: data.address || "",
+                name:               data.name               || "",
+                company_name:       data.company_name       || "",
+                cnpj:               data.cnpj               || "",
+                state_registration: data.state_registration || "",
+                phone:              data.phone              || "",
+                email:              data.email              || "",
+                address:            data.address            || "",
+                owner_name:         data.owner_name         || "",
+                owner_cpf:          data.owner_cpf          || "",
+                owner_phone:        data.owner_phone        || "",
             });
             setPaymentDefaults({
                 default_payment_type:           data.default_payment_type           ?? "both",
@@ -177,7 +184,15 @@ export default function SettingsPage() {
                     )}
                 </div>
 
+                {/* Dados da empresa */}
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Dados da Empresa</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Razão Social</Label>
+                        <Input value={companyData.company_name} disabled={!isCompanyEditable}
+                            placeholder="Razão Social Ltda."
+                            onChange={e => setCompanyData(p => ({ ...p, company_name: e.target.value }))} />
+                    </div>
                     <div className="space-y-2">
                         <Label>Nome Fantasia</Label>
                         <Input value={companyData.name} disabled={!isCompanyEditable}
@@ -191,22 +206,51 @@ export default function SettingsPage() {
                             onChange={e => setCompanyData(p => ({ ...p, cnpj: e.target.value }))} />
                     </div>
                     <div className="space-y-2">
-                        <Label>Telefone</Label>
+                        <Label>Inscrição Estadual</Label>
+                        <Input value={companyData.state_registration} disabled={!isCompanyEditable}
+                            placeholder="000.000.000.000"
+                            onChange={e => setCompanyData(p => ({ ...p, state_registration: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Telefone da Empresa</Label>
                         <Input value={companyData.phone} disabled={!isCompanyEditable}
                             placeholder="(00) 00000-0000"
                             onChange={e => setCompanyData(p => ({ ...p, phone: e.target.value }))} />
                     </div>
                     <div className="space-y-2">
-                        <Label>E-mail Comercial</Label>
+                        <Label>E-mail da Empresa</Label>
                         <Input value={companyData.email} disabled={!isCompanyEditable}
                             placeholder="contato@suamarcenaria.com.br"
                             onChange={e => setCompanyData(p => ({ ...p, email: e.target.value }))} />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                        <Label>Endereço</Label>
+                        <Label>Endereço da Empresa</Label>
                         <Input value={companyData.address} disabled={!isCompanyEditable}
                             placeholder="Rua, número, bairro, cidade - UF"
                             onChange={e => setCompanyData(p => ({ ...p, address: e.target.value }))} />
+                    </div>
+                </div>
+
+                {/* Dados do proprietário */}
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide pt-2">Dados do Proprietário</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2 md:col-span-2">
+                        <Label>Nome Completo</Label>
+                        <Input value={companyData.owner_name} disabled={!isCompanyEditable}
+                            placeholder="Nome completo do proprietário"
+                            onChange={e => setCompanyData(p => ({ ...p, owner_name: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>CPF</Label>
+                        <Input value={companyData.owner_cpf} disabled={!isCompanyEditable}
+                            placeholder="000.000.000-00"
+                            onChange={e => setCompanyData(p => ({ ...p, owner_cpf: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Telefone do Proprietário</Label>
+                        <Input value={companyData.owner_phone} disabled={!isCompanyEditable}
+                            placeholder="(00) 00000-0000"
+                            onChange={e => setCompanyData(p => ({ ...p, owner_phone: e.target.value }))} />
                     </div>
                 </div>
 

@@ -56,7 +56,10 @@ export default function BudgetDetailPage() {
     const [loading, setLoading]   = useState(true);
     const [shareUrl, setShareUrl] = useState("");
     const [shareOpen, setShareOpen] = useState(false);
-    const [orgName, setOrgName]   = useState("Marcenaria Pro");
+    const [orgData, setOrgData] = useState<{
+        name: string; company_name?: string; cnpj?: string;
+        phone?: string; email?: string; address?: string; owner_name?: string;
+    }>({ name: "Marcenaria Pro" });
     const [selectedPayment, setSelectedPayment] = useState<'prazo' | 'avista' | null>(null);
 
     const obsRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -88,11 +91,12 @@ export default function BudgetDetailPage() {
 
     useEffect(() => { if (!isCarpenter) load(); }, [load, isCarpenter]);
 
-    // carrega nome da org para o PDF
+    // carrega dados da org para o PDF
     useEffect(() => {
-        supabase.from('organizations').select('name').single().then(({ data }) => {
-            if (data?.name) setOrgName(data.name);
-        });
+        supabase.from('organizations')
+            .select('name, company_name, cnpj, phone, email, address, owner_name')
+            .single()
+            .then(({ data }) => { if (data) setOrgData(data); });
     }, []);
 
     const patch = async (updates: Partial<Budget>) => {
@@ -175,7 +179,13 @@ export default function BudgetDetailPage() {
         validity.setDate(validity.getDate() + 30);
 
         generateBudgetPDF({
-            orgName,
+            orgName:        orgData.name,
+            orgCompanyName: orgData.company_name,
+            orgCNPJ:        orgData.cnpj,
+            orgPhone:       orgData.phone,
+            orgEmail:       orgData.email,
+            orgAddress:     orgData.address,
+            orgOwnerName:   orgData.owner_name,
             budgetNumber: budget.budget_number || budget.id.slice(0, 8).toUpperCase(),
             validityDate: validity.toLocaleDateString('pt-BR'),
             clientName:   budget.client_name,

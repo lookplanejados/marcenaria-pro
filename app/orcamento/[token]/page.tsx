@@ -153,17 +153,6 @@ export default function PublicBudgetPage() {
                         <p className={`text-sm font-semibold ${statusInfo.color}`}>{statusInfo.text}</p>
                     </div>
 
-                    {/* Totais */}
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                        <div className="rounded-lg bg-indigo-50 dark:bg-indigo-900/10 p-3 text-center">
-                            <p className="text-[10px] text-indigo-500 font-semibold">TOTAL A PRAZO</p>
-                            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-300">{fmt(budget.total_prazo)}</p>
-                        </div>
-                        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/10 p-3 text-center">
-                            <p className="text-[10px] text-emerald-600 font-semibold">TOTAL À VISTA</p>
-                            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{fmt(budget.total_avista)}</p>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Banner contrato autorizado */}
@@ -198,6 +187,7 @@ export default function PublicBudgetPage() {
                         budget={budget}
                         onChange={budget.status === 'approved' ? undefined : handlePaymentChange}
                         readOnly={budget.status === 'approved'}
+                        hideInputs={true}
                         selectedPayment={selectedPayment}
                         onSelectPayment={budget.status === 'approved' ? undefined : setSelectedPayment}
                     />

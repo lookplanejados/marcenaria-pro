@@ -19,6 +19,7 @@ interface Props {
     budget: Budget;
     onChange?: (updates: Partial<Budget>) => void;
     readOnly?: boolean;
+    hideInputs?: boolean;
     selectedPayment?: 'prazo' | 'avista' | null;
     onSelectPayment?: (type: 'prazo' | 'avista') => void;
 }
@@ -26,7 +27,7 @@ interface Props {
 const fmt = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
-export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, selectedPayment, onSelectPayment }: Props) {
+export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, hideInputs = false, selectedPayment, onSelectPayment }: Props) {
     const [local, setLocal] = useState({ ...budget });
 
     useEffect(() => { setLocal({ ...budget }); }, [budget]);
@@ -91,7 +92,7 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, sel
                         <span className="font-semibold">{local.prazo_installments}x de {fmt(prazoInstallment)}</span>
                     </div>
 
-                    {!readOnly && (
+                    {!readOnly && !hideInputs && (
                         <div className="grid grid-cols-2 gap-2 pt-1">
                             <div className="space-y-1">
                                 <Label className="text-[10px] text-slate-400">Entrada (%)</Label>
@@ -152,7 +153,7 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, sel
                         <span className="font-semibold">{fmt(avistaRemainder)}</span>
                     </div>
 
-                    {!readOnly && (
+                    {!readOnly && !hideInputs && (
                         <div className="grid grid-cols-2 gap-2 pt-1">
                             <div className="space-y-1">
                                 <Label className="text-[10px] text-slate-400">Desconto (%)</Label>

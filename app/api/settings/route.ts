@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
     const { data, error } = await supabaseAdmin
         .from('organizations')
-        .select('name, cnpj, phone, email, address, default_payment_type, default_prazo_entry_percent, default_prazo_installments, default_avista_discount_percent, default_avista_entry_percent, default_budget_observations')
+        .select('name, company_name, cnpj, state_registration, phone, email, address, owner_name, owner_cpf, owner_phone, default_payment_type, default_prazo_entry_percent, default_prazo_installments, default_avista_discount_percent, default_avista_entry_percent, default_budget_observations')
         .eq('id', profile.organization_id)
         .single();
 
@@ -34,7 +34,8 @@ export async function PUT(req: Request) {
     const body = await req.json();
 
     // Campos permitidos
-    const allowed = ['name', 'cnpj', 'phone', 'email', 'address',
+    const allowed = ['name', 'company_name', 'cnpj', 'state_registration', 'phone', 'email', 'address',
+        'owner_name', 'owner_cpf', 'owner_phone',
         'default_payment_type', 'default_prazo_entry_percent',
         'default_prazo_installments', 'default_avista_discount_percent',
         'default_avista_entry_percent', 'default_budget_observations'];

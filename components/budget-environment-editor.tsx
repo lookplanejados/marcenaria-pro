@@ -255,6 +255,24 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
         onTotalsChange?.();
     };
 
+    const handlePublicEnvToggle = async (env: Environment) => {
+        const allActive = env.items.every(i => i.is_active);
+        const newState = !allActive;
+        for (const item of env.items) {
+            if (item.is_active !== newState) {
+                await fetch(`/api/public/budget/${token}/update`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ item_id: item.id, is_active: newState }),
+                });
+            }
+        }
+        setEnvironments(prev => prev.map(e =>
+            e.id === env.id ? { ...e, items: e.items.map(i => ({ ...i, is_active: newState })) } : e
+        ));
+        onTotalsChange?.();
+    };
+
     if (loading) return <p className="text-xs text-slate-400 animate-pulse">Carregando ambientes...</p>;
 
     return (
@@ -268,6 +286,15 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                     <div key={env.id} className="rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
                         {/* cabeçalho ambiente */}
                         <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-zinc-900">
+                            {isPublic && (
+                                <input
+                                    type="checkbox"
+                                    checked={env.items.length > 0 && env.items.every(i => i.is_active)}
+                                    onChange={() => handlePublicEnvToggle(env)}
+                                    className="h-4 w-4 accent-indigo-500 shrink-0"
+                                    title="Marcar/desmarcar todos os itens deste ambiente"
+                                />
+                            )}
                             <button onClick={() => setCollapsed(prev => ({ ...prev, [env.id]: !prev[env.id] }))}>
                                 {isCollapsed ? <ChevronRight className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
                             </button>
@@ -317,8 +344,8 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                             <div className="p-3 space-y-1.5">
                                 {/* cabeçalho tabela */}
                                 <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 1fr 4.5rem 4.5rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}>
-                                    <span>Qtd</span>
-                                    <span>Descrição / Dimensões</span>
+                                    <span>{isPublic ? '' : 'Qtd'}</span>
+                                    <span>{isPublic ? 'Item' : 'Descrição / Dimensões'}</span>
                                     <span className="text-right">A Prazo</span>
                                     <span className="text-right">À Vista</span>
                                     {!isPublic && <span />}
@@ -378,14 +405,8 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                 )}
 
                                                 <div className="min-w-0">
-                                                    {isPublic ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="truncate font-medium">{item.description}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="truncate font-medium block">{item.description}</span>
-                                                    )}
-                                                    {(item.alt_cm > 0 || item.larg_cm > 0 || item.prof_cm > 0) && (
+                                                    <span className="truncate font-medium block">{item.description}</span>
+                                                    {!isPublic && (item.alt_cm > 0 || item.larg_cm > 0 || item.prof_cm > 0) && (
                                                         <p className="text-[10px] text-slate-400 mt-0.5 flex flex-wrap gap-x-2">
                                                             {item.alt_cm > 0 && <span>Alt: {item.alt_cm}cm</span>}
                                                             {item.larg_cm > 0 && <span>Larg: {item.larg_cm}cm</span>}
@@ -400,13 +421,8 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                             )}
                                                         </p>
                                                     )}
-                                                    {isPublic && (
-                                                        <input
-                                                            type="number" min={1}
-                                                            className="mt-1 w-16 text-right bg-transparent border-b border-slate-200 outline-none text-xs"
-                                                            value={item.qty}
-                                                            onChange={e => handlePublicQty(item, parseFloat(e.target.value) || 1)}
-                                                        />
+                                                    {isPublic && item.qty > 1 && (
+                                                        <span className="text-[10px] text-slate-400">Qtd: {Math.round(item.qty)}</span>
                                                     )}
                                                 </div>
 

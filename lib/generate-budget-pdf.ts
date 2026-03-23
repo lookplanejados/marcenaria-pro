@@ -19,9 +19,12 @@ export interface BudgetEnvironmentPDF {
 
 export interface BudgetPDFData {
     orgName: string;
+    orgCompanyName?: string;
+    orgCNPJ?: string;
     orgPhone?: string;
-    orgInstagram?: string;
+    orgEmail?: string;
     orgAddress?: string;
+    orgOwnerName?: string;
     budgetNumber: string;
     validityDate: string;
     clientName: string;
@@ -56,29 +59,37 @@ export function generateBudgetPDF(data: BudgetPDFData) {
 
     // ── HEADER ──────────────────────────────────────────────
     doc.setFillColor(79, 70, 229);
-    doc.rect(0, 0, pageWidth, 38, "F");
+    doc.rect(0, 0, pageWidth, 44, "F");
 
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text(data.orgName, 15, 14);
+    doc.setFontSize(16);
+    doc.text(data.orgName, 15, 12);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    if (data.orgPhone)     doc.text(data.orgPhone,     15, 22);
-    if (data.orgInstagram) doc.text(`@${data.orgInstagram.replace('@', '')}`, 15, 28);
-    if (data.orgAddress)   doc.text(data.orgAddress,   15, 34);
+    doc.setFontSize(8);
+    let headerY = 20;
+    if (data.orgCompanyName) { doc.text(data.orgCompanyName, 15, headerY); headerY += 6; }
+    if (data.orgCNPJ)        { doc.text(`CNPJ: ${data.orgCNPJ}`, 15, headerY); headerY += 6; }
+
+    // linha inferior esquerda: endereço | tel | email
+    const infoLeft: string[] = [];
+    if (data.orgAddress)  infoLeft.push(data.orgAddress);
+    if (data.orgPhone)    infoLeft.push(`Tel: ${data.orgPhone}`);
+    if (data.orgEmail)    infoLeft.push(data.orgEmail);
+    if (infoLeft.length)  doc.text(infoLeft.join("  |  "), 15, 40, { maxWidth: pageWidth * 0.65 });
 
     // Título e número direita
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
-    doc.text("ORÇAMENTO", pageWidth - 15, 14, { align: "right" });
-    doc.setFontSize(9);
+    doc.text("ORÇAMENTO", pageWidth - 15, 12, { align: "right" });
+    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text(data.budgetNumber, pageWidth - 15, 22, { align: "right" });
-    doc.text(`Válido até: ${data.validityDate}`, pageWidth - 15, 28, { align: "right" });
+    doc.text(data.budgetNumber, pageWidth - 15, 20, { align: "right" });
+    doc.text(`Válido até: ${data.validityDate}`, pageWidth - 15, 27, { align: "right" });
+    if (data.orgOwnerName) doc.text(`Resp.: ${data.orgOwnerName}`, pageWidth - 15, 34, { align: "right" });
 
-    y = 48;
+    y = 54;
 
     // ── CLIENTE ─────────────────────────────────────────────
     doc.setTextColor(30, 30, 30);
