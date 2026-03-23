@@ -285,7 +285,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                 return (
                     <div key={env.id} className="rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden">
                         {/* cabeçalho ambiente */}
-                        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-zinc-900">
+                        <div className={`flex items-center gap-2 px-4 py-3 ${isPublic ? 'bg-indigo-50 dark:bg-indigo-950/40 border-b border-indigo-100 dark:border-indigo-900/40' : 'bg-slate-50 dark:bg-zinc-900'}`}>
                             {isPublic && (
                                 <input
                                     type="checkbox"
@@ -296,7 +296,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                 />
                             )}
                             <button onClick={() => setCollapsed(prev => ({ ...prev, [env.id]: !prev[env.id] }))}>
-                                {isCollapsed ? <ChevronRight className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                                {isCollapsed ? <ChevronRight className={`h-4 w-4 ${isPublic ? 'text-indigo-400' : 'text-slate-400'}`} /> : <ChevronDown className={`h-4 w-4 ${isPublic ? 'text-indigo-400' : 'text-slate-400'}`} />}
                             </button>
 
                             {editEnvId === env.id ? (
@@ -317,7 +317,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                 </div>
                             ) : (
                                 <span
-                                    className="font-semibold text-sm flex-1 cursor-pointer"
+                                    className={`flex-1 cursor-pointer ${isPublic ? 'font-bold text-base text-indigo-700 dark:text-indigo-300 tracking-wide' : 'font-semibold text-sm'}`}
                                     onClick={() => setCollapsed(prev => ({ ...prev, [env.id]: !prev[env.id] }))}
                                 >{env.name}</span>
                             )}
@@ -341,11 +341,12 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                         </div>
 
                         {!isCollapsed && (
-                            <div className="p-3 space-y-1.5">
+                            <div className={`space-y-1 ${isPublic ? 'px-2 py-2' : 'p-3 space-y-1.5'}`}>
                                 {/* cabeçalho tabela */}
-                                <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 1fr 4.5rem 4.5rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}>
-                                    <span>{isPublic ? '' : 'Qtd'}</span>
-                                    <span>{isPublic ? 'Item' : 'Descrição / Dimensões'}</span>
+                                <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 2rem 1fr 4.5rem 4.5rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}>
+                                    <span></span>
+                                    <span>Qtd</span>
+                                    <span>{isPublic ? 'Descrição' : 'Descrição / Dimensões'}</span>
                                     <span className="text-right">A Prazo</span>
                                     <span className="text-right">À Vista</span>
                                     {!isPublic && <span />}
@@ -388,24 +389,29 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                             </div>
                                         ) : (
                                             <div
-                                                className={`grid items-center text-xs px-1 py-1.5 rounded transition-colors ${
+                                                className={`grid items-center text-xs px-1 rounded transition-colors ${
                                                     !item.is_active ? 'opacity-50 line-through' : ''
-                                                } ${isPublic ? 'hover:bg-slate-50 dark:hover:bg-zinc-900' : ''}`}
-                                                style={{ gridTemplateColumns: isPublic ? '2rem 1fr 4.5rem 4.5rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}
+                                                } ${isPublic ? 'py-2 hover:bg-white/60 dark:hover:bg-zinc-800/60' : 'py-1.5'}`}
+                                                style={{ gridTemplateColumns: isPublic ? '2rem 2rem 1fr 4.5rem 4.5rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}
                                             >
                                                 {isPublic ? (
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={item.is_active}
-                                                        onChange={() => handlePublicToggle(item)}
-                                                        className="h-4 w-4 accent-indigo-500"
-                                                    />
+                                                    <>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={item.is_active}
+                                                            onChange={() => handlePublicToggle(item)}
+                                                            className="h-4 w-4 accent-indigo-500"
+                                                        />
+                                                        <span className="text-slate-500 font-mono self-start pt-0.5">
+                                                            {String(item.qty % 1 === 0 ? Math.round(item.qty) : item.qty).padStart(2, '0')}
+                                                        </span>
+                                                    </>
                                                 ) : (
                                                     <span className="text-slate-500 self-start pt-0.5">{String(item.qty % 1 === 0 ? Math.round(item.qty) : item.qty).padStart(2, '0')}</span>
                                                 )}
 
                                                 <div className="min-w-0">
-                                                    <span className="truncate font-medium block">{item.description}</span>
+                                                    <span className={`truncate block ${isPublic ? 'text-slate-700 dark:text-slate-200' : 'font-medium'}`}>{item.description}</span>
                                                     {!isPublic && (item.alt_cm > 0 || item.larg_cm > 0 || item.prof_cm > 0) && (
                                                         <p className="text-[10px] text-slate-400 mt-0.5 flex flex-wrap gap-x-2">
                                                             {item.alt_cm > 0 && <span>Alt: {item.alt_cm}cm</span>}
@@ -420,9 +426,6 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                                 </span>
                                                             )}
                                                         </p>
-                                                    )}
-                                                    {isPublic && item.qty > 1 && (
-                                                        <span className="text-[10px] text-slate-400">Qtd: {Math.round(item.qty)}</span>
                                                     )}
                                                 </div>
 
