@@ -144,21 +144,24 @@ export default function PublicBudgetPage() {
     ].filter(Boolean).join("  ·  ");
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
+        <div className="min-h-screen bg-slate-100 dark:bg-zinc-950">
             {/* ── CABEÇALHO DA EMPRESA ─────────────────────────── */}
-            <div className="bg-indigo-700 text-white">
-                <div className="max-w-2xl mx-auto px-5 py-5">
-                    <div className="flex items-start gap-4">
+            <div className="bg-white dark:bg-zinc-900 shadow-sm border-b border-slate-200 dark:border-zinc-800">
+                {/* Acento colorido no topo */}
+                <div className="h-1.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-500" />
+
+                <div className="max-w-2xl mx-auto px-5 py-4">
+                    <div className="flex items-center gap-4">
                         {/* Logo */}
                         <div className="shrink-0">
                             {org?.logo_url ? (
                                 <img
                                     src={org.logo_url}
                                     alt="Logo"
-                                    className="h-16 w-16 rounded-xl object-contain bg-white/10 p-1"
+                                    className="h-14 w-14 rounded-xl object-contain border border-slate-100 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 p-1"
                                 />
                             ) : (
-                                <div className="h-16 w-16 rounded-xl bg-white/20 flex items-center justify-center text-2xl font-black">
+                                <div className="h-14 w-14 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-2xl font-black">
                                     {(org?.name || "M").charAt(0).toUpperCase()}
                                 </div>
                             )}
@@ -166,55 +169,52 @@ export default function PublicBudgetPage() {
 
                         {/* Dados da empresa */}
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-xl font-black leading-tight tracking-tight">
+                            <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight tracking-tight">
                                 {org?.name || "Marcenaria"}
                             </h1>
                             {(org?.company_name || org?.cnpj) && (
-                                <p className="text-indigo-200 text-xs mt-0.5">
+                                <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
                                     {[org?.company_name, org?.cnpj ? `CNPJ: ${org.cnpj}` : null].filter(Boolean).join("  ·  ")}
                                 </p>
                             )}
                             {infoLine && (
-                                <p className="text-indigo-300 text-[11px] mt-1 leading-snug flex items-start gap-1">
-                                    <MapPin className="h-3 w-3 shrink-0 mt-0.5" />
+                                <p className="text-slate-400 text-[11px] mt-1 flex items-start gap-1">
+                                    <MapPin className="h-3 w-3 shrink-0 mt-0.5 text-indigo-400" />
                                     <span>{infoLine}</span>
                                 </p>
                             )}
                         </div>
 
-                        {/* Responsável (canto direito) */}
+                        {/* Responsável */}
                         {org?.owner_name && (
-                            <div className="shrink-0 text-right hidden sm:block">
-                                <p className="text-[10px] text-indigo-300 uppercase tracking-wide">Responsável</p>
-                                <p className="text-sm font-semibold text-white leading-tight">{org.owner_name}</p>
+                            <div className="shrink-0 text-right hidden sm:block border-l border-slate-100 dark:border-zinc-700 pl-4">
+                                <p className="text-[10px] text-slate-400 uppercase tracking-wide">Responsável</p>
+                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">{org.owner_name}</p>
                             </div>
                         )}
                     </div>
 
-                    {/* Responsável em mobile (linha separada) */}
                     {org?.owner_name && (
-                        <div className="mt-2 flex items-center gap-1.5 sm:hidden">
-                            <User className="h-3 w-3 text-indigo-300" />
-                            <p className="text-xs text-indigo-200">Resp.: {org.owner_name}</p>
+                        <div className="mt-2 flex items-center gap-1.5 sm:hidden border-t border-slate-100 dark:border-zinc-800 pt-2">
+                            <User className="h-3 w-3 text-slate-400" />
+                            <p className="text-xs text-slate-500">Resp.: {org.owner_name}</p>
                         </div>
                     )}
                 </div>
 
-                {/* Faixa inferior do header com nº do orçamento e status */}
-                <div className="bg-indigo-800/60 px-5 py-2">
-                    <div className="max-w-2xl mx-auto flex items-center justify-between">
+                {/* Faixa do cliente */}
+                <div className="border-t border-slate-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 px-5 py-2.5">
+                    <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
                         <div>
-                            <span className="text-[10px] text-indigo-300 uppercase tracking-wide">Cliente</span>
-                            <p className="text-sm font-bold leading-tight">{budget.client_name}</p>
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Para</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">{budget.client_name}</p>
                             {budget.client_address && (
-                                <p className="text-indigo-300 text-[11px]">{budget.client_address}</p>
+                                <p className="text-slate-500 text-[11px]">{budget.client_address}</p>
                             )}
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] text-indigo-300">{budget.budget_number}</p>
-                            <p className={`text-xs font-semibold mt-0.5 ${statusInfo.color.replace('text-', 'text-').replace('indigo-600', 'indigo-200').replace('emerald-600', 'emerald-300').replace('red-500', 'red-300').replace('slate-500', 'slate-300')}`}>
-                                {statusInfo.text}
-                            </p>
+                        <div className="text-right shrink-0">
+                            <p className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-semibold">{budget.budget_number}</p>
+                            <p className={`text-xs font-semibold mt-0.5 ${statusInfo.color}`}>{statusInfo.text}</p>
                         </div>
                     </div>
                 </div>
