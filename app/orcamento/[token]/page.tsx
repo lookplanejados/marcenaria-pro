@@ -313,16 +313,6 @@ export default function PublicBudgetPage() {
                     </div>
                 </div>
 
-                {/* Banner contrato autorizado */}
-                {budget.status === 'approved' && (
-                    <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3">
-                        <ShieldCheck className="h-6 w-6 text-emerald-500 shrink-0" />
-                        <div>
-                            <p className="font-semibold text-emerald-700 text-sm">Contrato Autorizado!</p>
-                            <p className="text-xs text-emerald-600 mt-0.5">A marcenaria entrará em contato para prosseguir.</p>
-                        </div>
-                    </div>
-                )}
 
                 {/* Ambientes */}
                 <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-3">
