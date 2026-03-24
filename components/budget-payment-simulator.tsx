@@ -52,6 +52,84 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, hid
 
     const isSelectable = !!onSelectPayment;
 
+    // Modo compacto (lado a lado) para página pública
+    if (hideInputs) {
+        return (
+            <div className={`${showPrazo && showAvista ? 'grid grid-cols-2 gap-3' : ''}`}>
+                {showPrazo && (
+                    <div
+                        onClick={() => onSelectPayment?.('prazo')}
+                        className={`rounded-xl border overflow-hidden transition-all ${isSelectable ? 'cursor-pointer' : ''} ${
+                            selectedPayment === 'prazo'
+                                ? 'border-indigo-400 ring-2 ring-indigo-300'
+                                : isSelectable
+                                    ? 'border-slate-200 hover:border-indigo-300'
+                                    : 'border-indigo-200'
+                        }`}
+                    >
+                        {/* Header do card */}
+                        <div className="bg-indigo-50 border-b border-indigo-100 px-3 py-2 flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide leading-tight">
+                                A Prazo — Cartão de Crédito
+                            </span>
+                            {isSelectable && (
+                                <div className={`h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                                    selectedPayment === 'prazo' ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'
+                                }`}>
+                                    {selectedPayment === 'prazo' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                </div>
+                            )}
+                        </div>
+                        {/* Valor */}
+                        <div className="bg-white px-3 py-3 text-center">
+                            <p className="text-xl font-black text-slate-800">{fmt(local.total_prazo)}</p>
+                            <p className="text-[11px] text-slate-500 mt-1.5 leading-tight">
+                                Entrada: {fmt(prazoEntry)} ({local.prazo_entry_percent}%) + {local.prazo_installments}x de {fmt(prazoInstallment)}
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">via cartão de crédito</p>
+                        </div>
+                    </div>
+                )}
+
+                {showAvista && (
+                    <div
+                        onClick={() => onSelectPayment?.('avista')}
+                        className={`rounded-xl border overflow-hidden transition-all ${isSelectable ? 'cursor-pointer' : ''} ${
+                            selectedPayment === 'avista'
+                                ? 'border-emerald-400 ring-2 ring-emerald-300'
+                                : isSelectable
+                                    ? 'border-slate-200 hover:border-emerald-300'
+                                    : 'border-emerald-200'
+                        }`}
+                    >
+                        {/* Header do card */}
+                        <div className="bg-emerald-50 border-b border-emerald-100 px-3 py-2 flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide leading-tight">
+                                À Vista — PIX (-{local.avista_discount_percent}%)
+                            </span>
+                            {isSelectable && (
+                                <div className={`h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                                    selectedPayment === 'avista' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
+                                }`}>
+                                    {selectedPayment === 'avista' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                </div>
+                            )}
+                        </div>
+                        {/* Valor */}
+                        <div className="bg-white px-3 py-3 text-center">
+                            <p className="text-xl font-black text-slate-800">{fmt(avistaTotal)}</p>
+                            <p className="text-[11px] text-slate-500 mt-1.5 leading-tight">
+                                Entrada: {fmt(avistaEntry)} ({local.avista_entry_percent}%) + Saldo: {fmt(avistaRemainder)}
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">na finalização da montagem via PIX</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Modo completo (dashboard)
     return (
         <div className="space-y-3">
             {showPrazo && (

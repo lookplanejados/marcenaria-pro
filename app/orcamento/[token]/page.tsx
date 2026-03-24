@@ -137,6 +137,9 @@ export default function PublicBudgetPage() {
                 })),
             })).filter((e: any) => e.items.length > 0);
 
+            // Se cliente escolheu uma modalidade, mostra só ela no PDF
+            const pdfPaymentType = selectedPayment ?? budget.payment_type;
+
             await generateBudgetPDF({
                 orgName:              org?.name        || "Marcenaria",
                 orgCompanyName:       org?.company_name,
@@ -149,7 +152,7 @@ export default function PublicBudgetPage() {
                 validityDate:         validity.toLocaleDateString('pt-BR'),
                 clientName:           budget.client_name,
                 clientAddress:        budget.client_address,
-                paymentType:          budget.payment_type,
+                paymentType:          pdfPaymentType,
                 totalPrazo:           budget.total_prazo,
                 totalAvista:          budget.total_avista,
                 prazoEntryPercent:    budget.prazo_entry_percent,
@@ -213,9 +216,9 @@ export default function PublicBudgetPage() {
                         <div className="shrink-0">
                             {org?.logo_url ? (
                                 <img src={org.logo_url} alt="Logo"
-                                    className="h-16 w-16 object-contain rounded-lg" />
+                                    className="h-20 w-20 object-contain rounded-xl" />
                             ) : (
-                                <div className="h-16 w-16 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-3xl font-black">
+                                <div className="h-20 w-20 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-4xl font-black">
                                     {(org?.name || "M").charAt(0).toUpperCase()}
                                 </div>
                             )}
@@ -223,11 +226,11 @@ export default function PublicBudgetPage() {
 
                         {/* Dados da empresa */}
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
                                 {org?.name || "Marcenaria"}
                             </h1>
                             {(org?.company_name || org?.cnpj) && (
-                                <p className="text-slate-500 text-xs mt-0.5">
+                                <p className="text-slate-500 text-xs mt-1">
                                     {[org?.company_name, org?.cnpj ? `CNPJ: ${org.cnpj}` : null].filter(Boolean).join("  ·  ")}
                                 </p>
                             )}
@@ -238,10 +241,10 @@ export default function PublicBudgetPage() {
 
                         {/* Validade + Responsável */}
                         <div className="shrink-0 text-right hidden sm:block">
-                            <p className="text-lg font-black text-indigo-600 leading-tight">ORÇAMENTO</p>
-                            <p className="text-xs text-slate-500 mt-1">Válido até: <span className="font-medium text-slate-700">{validityDate}</span></p>
+                            <p className="text-xl font-black text-indigo-600 leading-tight">ORÇAMENTO</p>
+                            <p className="text-xs text-slate-500 mt-1.5">Válido até: <span className="font-semibold text-slate-700 dark:text-slate-200">{validityDate}</span></p>
                             {org?.owner_name && (
-                                <p className="text-xs text-slate-500 mt-0.5">Resp.: <span className="font-medium text-slate-700">{org.owner_name}</span></p>
+                                <p className="text-xs text-slate-500 mt-0.5">Resp.: <span className="font-semibold text-slate-700 dark:text-slate-200">{org.owner_name}</span></p>
                             )}
                         </div>
                     </div>
