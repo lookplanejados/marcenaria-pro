@@ -219,7 +219,7 @@ export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
     const { profile, loading } = useRBAC();
     const role = (profile?.role ?? "carpenter") as keyof typeof ROLES;
-    const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0";
+    const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.2.0";
 
     return (
         <aside className={cn("h-full py-4 flex flex-col", className)}>
@@ -232,7 +232,7 @@ export function Sidebar({ className }: { className?: string }) {
             <div className="mt-3 space-y-3">
                 {!loading && <ProfileCard />}
                 <div className="text-center pb-1">
-                    <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-600">Marcenaria Pro © 2025</p>
+                    <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-600">Marcenaria Pro © 2026</p>
                     <p className="text-[9px] text-slate-300 dark:text-slate-700 font-mono">v{version}</p>
                 </div>
             </div>
@@ -245,7 +245,7 @@ export function SidebarMobileMenu() {
     const pathname = usePathname();
     const { profile, loading } = useRBAC();
     const role = (profile?.role ?? "carpenter") as keyof typeof ROLES;
-    const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0";
+    const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.2.0";
 
     return (
         <div className="flex flex-col h-full py-4">
@@ -256,7 +256,7 @@ export function SidebarMobileMenu() {
             <div className="mt-3 space-y-3">
                 {!loading && <ProfileCard />}
                 <div className="text-center pb-1">
-                    <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-600">Marcenaria Pro © 2025</p>
+                    <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-600">Marcenaria Pro © 2026</p>
                     <p className="text-[9px] text-slate-300 dark:text-zinc-700 font-mono">v{version}</p>
                 </div>
             </div>
