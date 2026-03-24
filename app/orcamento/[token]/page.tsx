@@ -257,25 +257,25 @@ export default function PublicBudgetPage() {
                     </div>
                 </div>
 
-                {/* Separador */}
-                <div className="border-t border-slate-200 dark:border-zinc-800" />
-
-                {/* Faixa do cliente */}
-                <div className="bg-slate-50 dark:bg-zinc-950 px-5 py-3">
-                    <div className="max-w-2xl mx-auto">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold">Para</p>
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight mt-0.5">{budget.client_name}</p>
-                        {budget.client_address && (
-                            <p className="text-slate-500 text-[11px] mt-0.5">{budget.client_address}</p>
-                        )}
-                    </div>
-                </div>
-
                 {/* Separador inferior */}
                 <div className="border-t border-slate-200 dark:border-zinc-800" />
             </div>
 
             <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+
+                {/* Card do cliente */}
+                <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex overflow-hidden">
+                    {/* Label PARA */}
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 border-r border-slate-200 dark:border-zinc-700 flex items-center justify-center px-4 shrink-0">
+                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">PARA</span>
+                    </div>
+                    <div className="px-4 py-3">
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">{budget.client_name}</p>
+                        {budget.client_address && (
+                            <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">{budget.client_address}</p>
+                        )}
+                    </div>
+                </div>
 
                 {/* Status + Ações de download — entre cabeçalho e itens */}
                 <div className={`rounded-xl border ${statusInfo.bg} ${statusInfo.border} px-4 py-3 flex items-center justify-between gap-3`}>
