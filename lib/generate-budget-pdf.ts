@@ -308,7 +308,7 @@ export async function generateBudgetPDF(data: BudgetPDFData) {
     doc.text("Qtd",       COL_QTY,   y + 3);
     doc.text("Descrição", COL_DESC,  y + 3);
     doc.text("A Prazo",   COL_PRAZO, y + 3, { align: "right" });
-    doc.text("À Vista",   COL_VIST,  y + 3, { align: "right" });
+    if (showAvista) doc.text("À Vista", COL_VIST, y + 3, { align: "right" });
     y += 10;
 
     let rowAlt = false;
@@ -340,6 +340,9 @@ export async function generateBudgetPDF(data: BudgetPDFData) {
             }
             rowAlt = !rowAlt;
 
+            // Calcula valor à vista por item aplicando o desconto sobre o prazo
+            const itemAvista = item.value_prazo * (1 - data.avistaDiscountPercent / 100);
+
             doc.setFont("helvetica", "normal");
             doc.setFontSize(7.5);
             doc.setTextColor(...DARK);
@@ -353,11 +356,11 @@ export async function generateBudgetPDF(data: BudgetPDFData) {
             doc.text(descLines[0], COL_DESC, y + 2);
 
             doc.setTextColor(...DARK);
-            doc.text(fmt(item.value_prazo),  COL_PRAZO, y + 2, { align: "right" });
-            doc.text(fmt(item.value_avista), COL_VIST,  y + 2, { align: "right" });
+            doc.text(fmt(item.value_prazo), COL_PRAZO, y + 2, { align: "right" });
+            if (showAvista) doc.text(fmt(itemAvista), COL_VIST, y + 2, { align: "right" });
 
             subPrazo  += item.value_prazo;
-            subAvista += item.value_avista;
+            subAvista += itemAvista;
             y += 7;
         }
 
@@ -371,8 +374,8 @@ export async function generateBudgetPDF(data: BudgetPDFData) {
         doc.setFontSize(7.5);
         doc.setTextColor(...INDIGO);
         doc.text("Subtotal", COL_PRAZO - 22, y + 2, { align: "right" });
-        doc.text(fmt(subPrazo),  COL_PRAZO, y + 2, { align: "right" });
-        doc.text(fmt(subAvista), COL_VIST,  y + 2, { align: "right" });
+        doc.text(fmt(subPrazo), COL_PRAZO, y + 2, { align: "right" });
+        if (showAvista) doc.text(fmt(subAvista), COL_VIST, y + 2, { align: "right" });
         y += 8;
         doc.setLineWidth(1);
     }
