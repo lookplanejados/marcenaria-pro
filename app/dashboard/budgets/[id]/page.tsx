@@ -59,6 +59,7 @@ export default function BudgetDetailPage() {
     const [orgData, setOrgData] = useState<{
         name: string; company_name?: string; cnpj?: string;
         phone?: string; email?: string; address?: string; owner_name?: string;
+        logo_url?: string; budget_validity_days?: number;
     }>({ name: "Marcenaria Pro" });
     const [selectedPayment, setSelectedPayment] = useState<'prazo' | 'avista' | null>(null);
 
@@ -94,7 +95,7 @@ export default function BudgetDetailPage() {
     // carrega dados da org para o PDF
     useEffect(() => {
         supabase.from('organizations')
-            .select('name, company_name, cnpj, phone, email, address, owner_name')
+            .select('name, company_name, cnpj, phone, email, address, owner_name, logo_url, budget_validity_days')
             .single()
             .then(({ data }) => { if (data) setOrgData(data); });
     }, []);
@@ -160,7 +161,7 @@ export default function BudgetDetailPage() {
         toast.success("Link regenerado!");
     };
 
-    const handleGeneratePDF = () => {
+    const handleGeneratePDF = async () => {
         if (!budget) return;
         const activeEnvs = budget.environments.map((env: any) => ({
             name: env.name,
@@ -175,10 +176,11 @@ export default function BudgetDetailPage() {
             })),
         })).filter((e: any) => e.items.length > 0);
 
+        const validityDays = orgData.budget_validity_days || 30;
         const validity = new Date();
-        validity.setDate(validity.getDate() + 30);
+        validity.setDate(validity.getDate() + validityDays);
 
-        generateBudgetPDF({
+        await generateBudgetPDF({
             orgName:        orgData.name,
             orgCompanyName: orgData.company_name,
             orgCNPJ:        orgData.cnpj,
@@ -186,7 +188,7 @@ export default function BudgetDetailPage() {
             orgEmail:       orgData.email,
             orgAddress:     orgData.address,
             orgOwnerName:   orgData.owner_name,
-            budgetNumber: budget.budget_number || budget.id.slice(0, 8).toUpperCase(),
+            orgLogoUrl:     orgData.logo_url,
             validityDate: validity.toLocaleDateString('pt-BR'),
             clientName:   budget.client_name,
             clientAddress: budget.client_address,

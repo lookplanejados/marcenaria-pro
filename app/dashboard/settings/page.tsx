@@ -25,6 +25,7 @@ export default function SettingsPage() {
         name: "", company_name: "", cnpj: "", state_registration: "",
         phone: "", email: "", address: "",
         owner_name: "", owner_cpf: "", owner_phone: "",
+        budget_validity_days: 30,
     });
     const [logoUrl, setLogoUrl] = useState("");
     const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -60,9 +61,10 @@ export default function SettingsPage() {
                 phone:              data.phone              || "",
                 email:              data.email              || "",
                 address:            data.address            || "",
-                owner_name:         data.owner_name         || "",
-                owner_cpf:          data.owner_cpf          || "",
-                owner_phone:        data.owner_phone        || "",
+                owner_name:           data.owner_name           || "",
+                owner_cpf:            data.owner_cpf            || "",
+                owner_phone:          data.owner_phone          || "",
+                budget_validity_days: data.budget_validity_days ?? 30,
             });
             setPaymentDefaults({
                 default_payment_type:           data.default_payment_type           ?? "both",
@@ -280,6 +282,13 @@ export default function SettingsPage() {
                         <Input value={companyData.address} disabled={!isCompanyEditable}
                             placeholder="Rua, número, bairro, cidade - UF"
                             onChange={e => setCompanyData(p => ({ ...p, address: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Validade do Orçamento (dias)</Label>
+                        <Input type="number" min={1} max={365} value={companyData.budget_validity_days}
+                            disabled={!isCompanyEditable}
+                            placeholder="30"
+                            onChange={e => setCompanyData(p => ({ ...p, budget_validity_days: parseInt(e.target.value) || 30 }))} />
                     </div>
                 </div>
 
