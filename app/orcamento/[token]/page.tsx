@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { BudgetEnvironmentEditor } from "@/components/budget-environment-editor";
 import { BudgetPaymentSimulator } from "@/components/budget-payment-simulator";
-import { ShieldCheck, LockOpen, MapPin, Phone, Mail, User } from "lucide-react";
+import { generateBudgetPDF } from "@/lib/generate-budget-pdf";
+import { ShieldCheck, LockOpen, User, FileDown, Printer, Clock, CheckCircle2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface OrgData {
@@ -17,6 +18,7 @@ interface OrgData {
     address?: string;
     owner_name?: string;
     logo_url?: string;
+    budget_validity_days?: number;
 }
 
 interface PublicBudget {
@@ -33,25 +35,24 @@ interface PublicBudget {
     avista_entry_percent: number;
     observations: string;
     status: string;
+    created_at: string;
     environments: any[];
     org: OrgData | null;
 }
 
-const fmt = (v: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
-
-const STATUS_MESSAGES: Record<string, { text: string; color: string }> = {
-    draft:    { text: "Aguardando envio",        color: "text-slate-500" },
-    sent:     { text: "Aguardando sua aprovação", color: "text-indigo-600" },
-    approved: { text: "Orçamento aprovado ✓",     color: "text-emerald-600" },
-    rejected: { text: "Orçamento recusado",        color: "text-red-500" },
+const STATUS_INFO: Record<string, { text: string; icon: any; bg: string; border: string; text_c: string }> = {
+    draft:    { text: "Aguardando envio",         icon: Clock,        bg: "bg-slate-50",   border: "border-slate-200",  text_c: "text-slate-500"  },
+    sent:     { text: "Aguardando sua aprovação",  icon: Send,         bg: "bg-indigo-50",  border: "border-indigo-200", text_c: "text-indigo-600" },
+    approved: { text: "Contrato autorizado!",       icon: CheckCircle2, bg: "bg-emerald-50", border: "border-emerald-200",text_c: "text-emerald-600"},
+    rejected: { text: "Orçamento recusado",         icon: Clock,        bg: "bg-red-50",     border: "border-red-200",   text_c: "text-red-500"    },
 };
 
 export default function PublicBudgetPage() {
     const { token } = useParams<{ token: string }>();
-    const [budget, setBudget] = useState<PublicBudget | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [acting, setActing]   = useState(false);
+    const [budget, setBudget]           = useState<PublicBudget | null>(null);
+    const [loading, setLoading]         = useState(true);
+    const [acting, setActing]           = useState(false);
+    const [generatingPDF, setGeneratingPDF] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<'prazo' | 'avista' | null>(null);
 
     const load = useCallback(async () => {
@@ -108,15 +109,65 @@ export default function PublicBudgetPage() {
         const data = await res.json();
         setBudget(prev => prev ? {
             ...prev,
-            total_prazo: data.total_prazo,
-            total_avista: data.total_avista,
-            environments: data.environments,
+            total_prazo:   data.total_prazo,
+            total_avista:  data.total_avista,
+            environments:  data.environments,
         } : null);
+    };
+
+    const handleDownloadPDF = async () => {
+        if (!budget) return;
+        setGeneratingPDF(true);
+        try {
+            const org = budget.org;
+            const validityDays = org?.budget_validity_days || 30;
+            const validity = new Date();
+            validity.setDate(validity.getDate() + validityDays);
+
+            const activeEnvs = budget.environments.map((env: any) => ({
+                name: env.name,
+                items: env.items.filter((i: any) => i.is_active).map((i: any) => ({
+                    description:   i.description,
+                    qty:           i.qty,
+                    alt_cm:        i.alt_cm,
+                    larg_cm:       i.larg_cm,
+                    value_prazo:   i.value_prazo,
+                    value_avista:  i.value_avista,
+                    is_active:     true,
+                })),
+            })).filter((e: any) => e.items.length > 0);
+
+            await generateBudgetPDF({
+                orgName:              org?.name        || "Marcenaria",
+                orgCompanyName:       org?.company_name,
+                orgCNPJ:              org?.cnpj,
+                orgPhone:             org?.phone,
+                orgEmail:             org?.email,
+                orgAddress:           org?.address,
+                orgOwnerName:         org?.owner_name,
+                orgLogoUrl:           org?.logo_url,
+                validityDate:         validity.toLocaleDateString('pt-BR'),
+                clientName:           budget.client_name,
+                clientAddress:        budget.client_address,
+                paymentType:          budget.payment_type,
+                totalPrazo:           budget.total_prazo,
+                totalAvista:          budget.total_avista,
+                prazoEntryPercent:    budget.prazo_entry_percent,
+                prazoInstallments:    budget.prazo_installments,
+                avistaDiscountPercent:budget.avista_discount_percent,
+                avistaEntryPercent:   budget.avista_entry_percent,
+                environments:         activeEnvs,
+                observations:         budget.observations,
+                responsibleName:      org?.owner_name,
+            });
+        } finally {
+            setGeneratingPDF(false);
+        }
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <p className="text-slate-400 animate-pulse">Carregando orçamento...</p>
             </div>
         );
@@ -124,7 +175,7 @@ export default function PublicBudgetPage() {
 
     if (!budget) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="text-center space-y-2">
                     <p className="text-xl font-bold text-slate-700">Orçamento não encontrado</p>
                     <p className="text-slate-400 text-sm">Este link pode ter expirado ou sido removido.</p>
@@ -133,29 +184,36 @@ export default function PublicBudgetPage() {
         );
     }
 
-    const org = budget.org;
-    const statusInfo = STATUS_MESSAGES[budget.status] || STATUS_MESSAGES.sent;
+    const org        = budget.org;
+    const statusInfo = STATUS_INFO[budget.status] || STATUS_INFO.sent;
+    const StatusIcon = statusInfo.icon;
 
-    // Linha de info: endereço | tel | email
     const infoLine = [
         org?.address,
-        org?.phone   ? `Tel: ${org.phone}` : null,
+        org?.phone ? `Tel: ${org.phone}` : null,
         org?.email,
     ].filter(Boolean).join("  ·  ");
 
+    const validityDays = org?.budget_validity_days || 30;
+    const validityDate = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + validityDays);
+        return d.toLocaleDateString('pt-BR');
+    })();
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
-            {/* ── CABEÇALHO — fundo branco, clean ─────────────────── */}
+
+            {/* ── CABEÇALHO — estilo PDF, fundo branco ─────────── */}
             <div className="bg-white dark:bg-zinc-900 shadow-sm">
                 <div className="max-w-2xl mx-auto px-5 py-5">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-start gap-4">
+
                         {/* Logo */}
                         <div className="shrink-0">
                             {org?.logo_url ? (
-                                <img
-                                    src={org.logo_url} alt="Logo"
-                                    className="h-16 w-16 object-contain rounded-lg"
-                                />
+                                <img src={org.logo_url} alt="Logo"
+                                    className="h-16 w-16 object-contain rounded-lg" />
                             ) : (
                                 <div className="h-16 w-16 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-3xl font-black">
                                     {(org?.name || "M").charAt(0).toUpperCase()}
@@ -174,59 +232,77 @@ export default function PublicBudgetPage() {
                                 </p>
                             )}
                             {infoLine && (
-                                <p className="text-slate-400 text-[11px] mt-1 leading-snug">{infoLine}</p>
+                                <p className="text-slate-400 text-[11px] mt-1.5 leading-snug">{infoLine}</p>
                             )}
                         </div>
 
-                        {/* Responsável */}
-                        {org?.owner_name && (
-                            <div className="shrink-0 text-right hidden sm:block border-l border-slate-100 dark:border-zinc-700 pl-4">
-                                <p className="text-[10px] text-slate-400 uppercase tracking-wide">Responsável</p>
-                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight mt-0.5">{org.owner_name}</p>
-                            </div>
-                        )}
+                        {/* Validade + Responsável */}
+                        <div className="shrink-0 text-right hidden sm:block">
+                            <p className="text-lg font-black text-indigo-600 leading-tight">ORÇAMENTO</p>
+                            <p className="text-xs text-slate-500 mt-1">Válido até: <span className="font-medium text-slate-700">{validityDate}</span></p>
+                            {org?.owner_name && (
+                                <p className="text-xs text-slate-500 mt-0.5">Resp.: <span className="font-medium text-slate-700">{org.owner_name}</span></p>
+                            )}
+                        </div>
                     </div>
 
-                    {org?.owner_name && (
-                        <div className="mt-2.5 flex items-center gap-1.5 sm:hidden border-t border-slate-100 dark:border-zinc-800 pt-2">
-                            <User className="h-3 w-3 text-slate-400" />
-                            <p className="text-xs text-slate-500">Resp.: {org.owner_name}</p>
-                        </div>
-                    )}
+                    {/* Mobile: validade + resp */}
+                    <div className="mt-3 sm:hidden flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 pt-2">
+                        <p className="text-xs text-slate-500">Válido até: <span className="font-medium">{validityDate}</span></p>
+                        {org?.owner_name && (
+                            <p className="text-xs text-slate-500 flex items-center gap-1">
+                                <User className="h-3 w-3" />Resp.: <span className="font-medium">{org.owner_name}</span>
+                            </p>
+                        )}
+                    </div>
                 </div>
 
-                {/* Linha separadora */}
+                {/* Separador */}
                 <div className="border-t border-slate-200 dark:border-zinc-800" />
 
                 {/* Faixa do cliente */}
                 <div className="bg-slate-50 dark:bg-zinc-950 px-5 py-3">
-                    <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
-                        <div>
-                            <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold">Para</p>
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight mt-0.5">{budget.client_name}</p>
-                            {budget.client_address && (
-                                <p className="text-slate-500 text-[11px] mt-0.5">{budget.client_address}</p>
-                            )}
-                        </div>
-                        <div className="text-right shrink-0">
-                            <p className="text-xs font-mono text-indigo-500 font-semibold">{budget.budget_number}</p>
-                            <p className={`text-xs font-semibold mt-0.5 ${statusInfo.color}`}>{statusInfo.text}</p>
-                        </div>
+                    <div className="max-w-2xl mx-auto">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold">Para</p>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight mt-0.5">{budget.client_name}</p>
+                        {budget.client_address && (
+                            <p className="text-slate-500 text-[11px] mt-0.5">{budget.client_address}</p>
+                        )}
                     </div>
                 </div>
 
-                {/* Linha separadora inferior */}
+                {/* Separador inferior */}
                 <div className="border-t border-slate-200 dark:border-zinc-800" />
             </div>
 
-            <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+            <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+
+                {/* Status + Ações de download — entre cabeçalho e itens */}
+                <div className={`rounded-xl border ${statusInfo.bg} ${statusInfo.border} px-4 py-3 flex items-center justify-between gap-3`}>
+                    <div className="flex items-center gap-2">
+                        <StatusIcon className={`h-4 w-4 shrink-0 ${statusInfo.text_c}`} />
+                        <p className={`text-sm font-semibold ${statusInfo.text_c}`}>{statusInfo.text}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5"
+                            onClick={handleDownloadPDF} disabled={generatingPDF}>
+                            <FileDown className="h-3.5 w-3.5" />
+                            {generatingPDF ? "Gerando..." : "Baixar PDF"}
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0"
+                            title="Imprimir" onClick={() => window.print()}>
+                            <Printer className="h-3.5 w-3.5" />
+                        </Button>
+                    </div>
+                </div>
+
                 {/* Banner contrato autorizado */}
                 {budget.status === 'approved' && (
-                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 p-4 flex items-center gap-3">
-                        <ShieldCheck className="h-7 w-7 text-emerald-500 shrink-0" />
+                    <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3">
+                        <ShieldCheck className="h-6 w-6 text-emerald-500 shrink-0" />
                         <div>
-                            <p className="font-semibold text-emerald-700 dark:text-emerald-300">Contrato Autorizado!</p>
-                            <p className="text-sm text-emerald-600 dark:text-emerald-400">A marcenaria entrará em contato para prosseguir.</p>
+                            <p className="font-semibold text-emerald-700 text-sm">Contrato Autorizado!</p>
+                            <p className="text-xs text-emerald-600 mt-0.5">A marcenaria entrará em contato para prosseguir.</p>
                         </div>
                     </div>
                 )}
@@ -266,7 +342,7 @@ export default function PublicBudgetPage() {
                     </div>
                 )}
 
-                {/* Ações */}
+                {/* Ação principal */}
                 {budget.status !== 'approved' ? (
                     <Button
                         className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-12 text-base font-semibold"

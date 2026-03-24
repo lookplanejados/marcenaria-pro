@@ -16,7 +16,7 @@ export async function GET(req: Request, { params }: { params: { token: string } 
         // Busca dados da organização para exibir no cabeçalho
         const { data: org } = await supabaseAdmin
             .from('organizations')
-            .select('name, company_name, cnpj, phone, email, address, owner_name, logo_url')
+            .select('name, company_name, cnpj, phone, email, address, owner_name, logo_url, budget_validity_days')
             .eq('id', (budget as any).organization_id)
             .single();
 
