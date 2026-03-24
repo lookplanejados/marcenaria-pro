@@ -106,16 +106,22 @@ export default function PublicBudgetPage() {
         });
     };
 
-    const reloadTotals = async () => {
-        const res = await fetch(`/api/public/budget/${token}`);
-        const data = await res.json();
-        setBudget(prev => prev ? {
-            ...prev,
-            total_prazo:   data.total_prazo,
-            total_avista:  data.total_avista,
-            environments:  data.environments,
-        } : null);
-    };
+    const reloadTotals = useCallback(async (totals?: { total_prazo: number; total_avista: number }) => {
+        if (totals) {
+            // Totais já vieram da resposta do PATCH — atualiza direto, sem segundo fetch
+            setBudget(prev => prev ? { ...prev, ...totals } : null);
+        } else {
+            // Fallback: busca completa (usada ao adicionar/remover itens no dashboard)
+            const res = await fetch(`/api/public/budget/${token}`);
+            const data = await res.json();
+            setBudget(prev => prev ? {
+                ...prev,
+                total_prazo:  data.total_prazo,
+                total_avista: data.total_avista,
+                environments: data.environments,
+            } : null);
+        }
+    }, [token]);
 
     const handleDownloadPDF = async () => {
         if (!budget) return;

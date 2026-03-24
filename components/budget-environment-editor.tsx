@@ -45,7 +45,7 @@ interface Props {
     token?: string;       // modo público: usa token em vez de budgetId
     readOnly?: boolean;
     avistaDiscountPercent?: number;
-    onTotalsChange?: () => void;
+    onTotalsChange?: (totals?: { total_prazo: number; total_avista: number }) => void;
 }
 
 const fmt = (v: number) =>
@@ -237,7 +237,8 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
             ...e,
             items: e.items.map(i => i.id === item.id ? { ...i, is_active: !i.is_active } : i),
         })));
-        onTotalsChange?.();
+        // passa totais já calculados — evita segundo fetch
+        onTotalsChange?.(totals);
     };
 
     const handlePublicQty = async (item: BudgetItem, qty: number) => {
@@ -248,29 +249,35 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
             body: JSON.stringify({ item_id: item.id, qty }),
         });
         if (!res.ok) return;
+        const { totals } = await res.json();
         setEnvironments(prev => prev.map(e => ({
             ...e,
             items: e.items.map(i => i.id === item.id ? { ...i, qty } : i),
         })));
-        onTotalsChange?.();
+        onTotalsChange?.(totals);
     };
 
     const handlePublicEnvToggle = async (env: Environment) => {
         const allActive = env.items.every(i => i.is_active);
         const newState = !allActive;
+        let lastTotals: { total_prazo: number; total_avista: number } | undefined;
         for (const item of env.items) {
             if (item.is_active !== newState) {
-                await fetch(`/api/public/budget/${token}/update`, {
+                const res = await fetch(`/api/public/budget/${token}/update`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ item_id: item.id, is_active: newState }),
                 });
+                if (res.ok) {
+                    const data = await res.json();
+                    lastTotals = data.totals;
+                }
             }
         }
         setEnvironments(prev => prev.map(e =>
             e.id === env.id ? { ...e, items: e.items.map(i => ({ ...i, is_active: newState })) } : e
         ));
-        onTotalsChange?.();
+        onTotalsChange?.(lastTotals);
     };
 
     if (loading) return <p className="text-xs text-slate-400 animate-pulse">Carregando ambientes...</p>;
