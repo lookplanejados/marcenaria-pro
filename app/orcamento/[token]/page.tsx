@@ -121,12 +121,17 @@ export default function PublicBudgetPage() {
         if (!budget) return;
         setGeneratingPDF(true);
         try {
-            const org = budget.org;
+            // Busca dados frescos da API para garantir que itens desmarcados
+            // e totais recalculados estejam corretos no PDF
+            const res = await fetch(`/api/public/budget/${token}`);
+            const data = await res.json();
+
+            const org = data.org || budget.org;
             const validityDays = org?.budget_validity_days || 30;
             const validity = new Date();
             validity.setDate(validity.getDate() + validityDays);
 
-            const activeEnvs = budget.environments.map((env: any) => ({
+            const activeEnvs = (data.environments || []).map((env: any) => ({
                 name: env.name,
                 items: env.items.filter((i: any) => i.is_active).map((i: any) => ({
                     description:   i.description,
@@ -139,11 +144,11 @@ export default function PublicBudgetPage() {
                 })),
             })).filter((e: any) => e.items.length > 0);
 
-            // Se cliente escolheu uma modalidade, mostra só ela no PDF
-            const pdfPaymentType = selectedPayment ?? budget.payment_type;
+            // Usa a condição que o cliente selecionou na tela; senão, a do orçamento
+            const pdfPaymentType = selectedPayment ?? data.payment_type;
 
             await generateBudgetPDF({
-                orgName:              org?.name        || "Marcenaria",
+                orgName:              org?.name         || "Marcenaria",
                 orgCompanyName:       org?.company_name,
                 orgCNPJ:              org?.cnpj,
                 orgPhone:             org?.phone,
@@ -152,17 +157,17 @@ export default function PublicBudgetPage() {
                 orgOwnerName:         org?.owner_name,
                 orgLogoUrl:           org?.logo_url,
                 validityDate:         validity.toLocaleDateString('pt-BR'),
-                clientName:           budget.client_name,
-                clientAddress:        budget.client_address,
+                clientName:           data.client_name,
+                clientAddress:        data.client_address,
                 paymentType:          pdfPaymentType,
-                totalPrazo:           budget.total_prazo,
-                totalAvista:          budget.total_avista,
-                prazoEntryPercent:    budget.prazo_entry_percent,
-                prazoInstallments:    budget.prazo_installments,
-                avistaDiscountPercent:budget.avista_discount_percent,
-                avistaEntryPercent:   budget.avista_entry_percent,
+                totalPrazo:           data.total_prazo,
+                totalAvista:          data.total_avista,
+                prazoEntryPercent:    data.prazo_entry_percent,
+                prazoInstallments:    data.prazo_installments,
+                avistaDiscountPercent:data.avista_discount_percent,
+                avistaEntryPercent:   data.avista_entry_percent,
                 environments:         activeEnvs,
-                observations:         budget.observations,
+                observations:         data.observations,
                 responsibleName:      org?.owner_name,
             });
         } finally {
