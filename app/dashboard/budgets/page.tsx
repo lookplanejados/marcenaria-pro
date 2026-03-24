@@ -167,7 +167,6 @@ export default function BudgetsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Orçamentos</h2>
-                    <p className="text-sm text-slate-500">{total} orçamento{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}</p>
                 </div>
                 <Button onClick={() => setOpenNew(true)}>
                     <Plus className="h-4 w-4 mr-2" />Novo Orçamento
@@ -197,9 +196,8 @@ export default function BudgetsPage() {
 
             {/* Tabela */}
             <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 overflow-hidden">
-                <div className="grid grid-cols-[1fr_1fr_6rem_6rem_5.5rem_7rem_6rem] text-[10px] text-slate-400 font-semibold px-4 py-2 border-b bg-slate-50 dark:bg-zinc-950 dark:border-zinc-800">
+                <div className="grid grid-cols-[1fr_6rem_6rem_5.5rem_7rem_6rem] text-[10px] text-slate-400 font-semibold px-4 py-2 border-b bg-slate-50 dark:bg-zinc-950 dark:border-zinc-800">
                     <span>Cliente</span>
-                    <span>Nº Orçamento</span>
                     <span className="text-right">A Prazo</span>
                     <span className="text-right">À Vista</span>
                     <span className="text-center">Status</span>
@@ -214,11 +212,10 @@ export default function BudgetsPage() {
                 ) : (
                     budgets.map(b => (
                         <div key={b.id}
-                            className="grid grid-cols-[1fr_1fr_6rem_6rem_5.5rem_7rem_6rem] items-center px-4 py-3 border-b last:border-b-0 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer text-sm"
+                            className="grid grid-cols-[1fr_6rem_6rem_5.5rem_7rem_6rem] items-center px-4 py-3 border-b last:border-b-0 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer text-sm"
                             onClick={() => router.push(`/dashboard/budgets/${b.id}`)}
                         >
                             <span className="font-medium truncate">{b.client_name}</span>
-                            <span className="text-slate-500 text-xs">{b.budget_number || '—'}</span>
                             <span className="text-right text-indigo-600 font-semibold">{fmt(b.total_prazo)}</span>
                             <span className="text-right text-emerald-600 font-semibold">{fmt(b.total_avista)}</span>
                             <span className="flex justify-center">

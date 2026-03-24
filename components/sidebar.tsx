@@ -132,7 +132,7 @@ function OrgBrand() {
         <div className="px-4 mb-4 flex flex-col items-center gap-1">
             <div className="h-12 w-12 rounded-xl overflow-hidden border border-slate-200 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800 shadow-sm flex items-center justify-center">
                 {org?.logo_url
-                    ? <img src={org.logo_url} alt={name} className="h-full w-full object-cover" />
+                    ? <img src={org.logo_url} alt={name} className="h-full w-full object-contain p-1" />
                     : <Building2 className="h-6 w-6 text-slate-400 dark:text-zinc-500" />}
             </div>
             <p className="text-sm font-bold text-slate-800 dark:text-slate-100 text-center leading-tight px-1 truncate w-full">

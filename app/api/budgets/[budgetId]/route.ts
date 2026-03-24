@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { recalcTotals } from '@/lib/budget-recalc';
 
 async function getCallerProfile(req: Request) {
     const authHeader = req.headers.get('Authorization');
@@ -93,6 +94,15 @@ export async function PUT(req: Request, { params }: { params: { budgetId: string
             .select().single();
 
         if (error) throw error;
+
+        // Recalcula totais se o desconto à vista mudou
+        if (body.avista_discount_percent !== undefined) {
+            await recalcTotals(params.budgetId);
+            const { data: refreshed } = await supabaseAdmin
+                .from('budgets').select('*').eq('id', params.budgetId).single();
+            return NextResponse.json(refreshed ?? data);
+        }
+
         return NextResponse.json(data);
     } catch (e: any) {
         return NextResponse.json({ error: e.message }, { status: 500 });
