@@ -106,12 +106,12 @@ export default function PublicBudgetPage() {
         });
     };
 
-    const reloadTotals = useCallback(async (totals?: { total_prazo: number; total_avista: number }) => {
-        if (totals) {
-            // Totais já vieram da resposta do PATCH — atualiza direto, sem segundo fetch
-            setBudget(prev => prev ? { ...prev, ...totals } : null);
+    const reloadTotals = useCallback(async (update?: { total_prazo: number; total_avista: number; environments?: any[] }) => {
+        if (update) {
+            // Totais calculados localmente — aplica direto, sem fetch
+            setBudget(prev => prev ? { ...prev, ...update } : null);
         } else {
-            // Fallback: busca completa (usada ao adicionar/remover itens no dashboard)
+            // Fallback: busca completa (usado após add/remove de itens no dashboard)
             const res = await fetch(`/api/public/budget/${token}`);
             const data = await res.json();
             setBudget(prev => prev ? {
@@ -127,54 +127,50 @@ export default function PublicBudgetPage() {
         if (!budget) return;
         setGeneratingPDF(true);
         try {
-            // Busca dados frescos da API para garantir que itens desmarcados
-            // e totais recalculados estejam corretos no PDF
-            const res = await fetch(`/api/public/budget/${token}`);
-            const data = await res.json();
-
-            const org = data.org || budget.org;
+            // Usa o estado atual da tela (já atualizado em tempo real pelo toggle de itens)
+            const org = budget.org;
             const validityDays = org?.budget_validity_days || 30;
             const validity = new Date();
             validity.setDate(validity.getDate() + validityDays);
 
-            const activeEnvs = (data.environments || []).map((env: any) => ({
+            const activeEnvs = (budget.environments || []).map((env: any) => ({
                 name: env.name,
-                items: env.items.filter((i: any) => i.is_active).map((i: any) => ({
-                    description:   i.description,
-                    qty:           i.qty,
-                    alt_cm:        i.alt_cm,
-                    larg_cm:       i.larg_cm,
-                    value_prazo:   i.value_prazo,
-                    value_avista:  i.value_avista,
-                    is_active:     true,
+                items: (env.items || []).filter((i: any) => i.is_active).map((i: any) => ({
+                    description:  i.description,
+                    qty:          i.qty,
+                    alt_cm:       i.alt_cm,
+                    larg_cm:      i.larg_cm,
+                    value_prazo:  i.value_prazo,
+                    value_avista: i.value_avista,
+                    is_active:    true,
                 })),
             })).filter((e: any) => e.items.length > 0);
 
-            // Usa a condição que o cliente selecionou na tela; senão, a do orçamento
-            const pdfPaymentType = selectedPayment ?? data.payment_type;
+            // Condição de pagamento escolhida pelo cliente na tela
+            const pdfPaymentType = selectedPayment ?? budget.payment_type;
 
             await generateBudgetPDF({
-                orgName:              org?.name         || "Marcenaria",
-                orgCompanyName:       org?.company_name,
-                orgCNPJ:              org?.cnpj,
-                orgPhone:             org?.phone,
-                orgEmail:             org?.email,
-                orgAddress:           org?.address,
-                orgOwnerName:         org?.owner_name,
-                orgLogoUrl:           org?.logo_url,
-                validityDate:         validity.toLocaleDateString('pt-BR'),
-                clientName:           data.client_name,
-                clientAddress:        data.client_address,
-                paymentType:          pdfPaymentType,
-                totalPrazo:           data.total_prazo,
-                totalAvista:          data.total_avista,
-                prazoEntryPercent:    data.prazo_entry_percent,
-                prazoInstallments:    data.prazo_installments,
-                avistaDiscountPercent:data.avista_discount_percent,
-                avistaEntryPercent:   data.avista_entry_percent,
-                environments:         activeEnvs,
-                observations:         data.observations,
-                responsibleName:      org?.owner_name,
+                orgName:               org?.name        || "Marcenaria",
+                orgCompanyName:        org?.company_name,
+                orgCNPJ:               org?.cnpj,
+                orgPhone:              org?.phone,
+                orgEmail:              org?.email,
+                orgAddress:            org?.address,
+                orgOwnerName:          org?.owner_name,
+                orgLogoUrl:            org?.logo_url,
+                validityDate:          validity.toLocaleDateString('pt-BR'),
+                clientName:            budget.client_name,
+                clientAddress:         budget.client_address,
+                paymentType:           pdfPaymentType,
+                totalPrazo:            budget.total_prazo,
+                totalAvista:           budget.total_avista,
+                prazoEntryPercent:     budget.prazo_entry_percent,
+                prazoInstallments:     budget.prazo_installments,
+                avistaDiscountPercent: budget.avista_discount_percent,
+                avistaEntryPercent:    budget.avista_entry_percent,
+                environments:          activeEnvs,
+                observations:          budget.observations,
+                responsibleName:       org?.owner_name,
             });
         } finally {
             setGeneratingPDF(false);
