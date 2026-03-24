@@ -41,10 +41,10 @@ const fmt = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
 const STATUS_MESSAGES: Record<string, { text: string; color: string }> = {
-    draft:    { text: "Aguardando envio",        color: "text-indigo-200" },
-    sent:     { text: "Aguardando sua aprovação", color: "text-yellow-300" },
-    approved: { text: "Orçamento aprovado ✓",     color: "text-emerald-300" },
-    rejected: { text: "Orçamento recusado",        color: "text-red-300" },
+    draft:    { text: "Aguardando envio",        color: "text-slate-500" },
+    sent:     { text: "Aguardando sua aprovação", color: "text-indigo-600" },
+    approved: { text: "Orçamento aprovado ✓",     color: "text-emerald-600" },
+    rejected: { text: "Orçamento recusado",        color: "text-red-500" },
 };
 
 export default function PublicBudgetPage() {
@@ -144,19 +144,20 @@ export default function PublicBudgetPage() {
     ].filter(Boolean).join("  ·  ");
 
     return (
-        <div className="min-h-screen bg-slate-100 dark:bg-zinc-950">
-            {/* ── CABEÇALHO DA EMPRESA — estilo PDF ───────────────── */}
-            <div className="bg-indigo-700 shadow-md">
+        <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
+            {/* ── CABEÇALHO — fundo branco, clean ─────────────────── */}
+            <div className="bg-white dark:bg-zinc-900 shadow-sm">
                 <div className="max-w-2xl mx-auto px-5 py-5">
                     <div className="flex items-center gap-4">
                         {/* Logo */}
                         <div className="shrink-0">
                             {org?.logo_url ? (
-                                <div className="h-16 w-16 rounded-xl bg-white p-1 shadow-sm flex items-center justify-center">
-                                    <img src={org.logo_url} alt="Logo" className="h-full w-full object-contain" />
-                                </div>
+                                <img
+                                    src={org.logo_url} alt="Logo"
+                                    className="h-16 w-16 object-contain rounded-lg"
+                                />
                             ) : (
-                                <div className="h-16 w-16 rounded-xl bg-white/20 flex items-center justify-center text-white text-3xl font-black">
+                                <div className="h-16 w-16 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-3xl font-black">
                                     {(org?.name || "M").charAt(0).toUpperCase()}
                                 </div>
                             )}
@@ -164,54 +165,58 @@ export default function PublicBudgetPage() {
 
                         {/* Dados da empresa */}
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-xl font-black text-white leading-tight tracking-tight">
+                            <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
                                 {org?.name || "Marcenaria"}
                             </h1>
                             {(org?.company_name || org?.cnpj) && (
-                                <p className="text-indigo-200 text-xs mt-0.5">
+                                <p className="text-slate-500 text-xs mt-0.5">
                                     {[org?.company_name, org?.cnpj ? `CNPJ: ${org.cnpj}` : null].filter(Boolean).join("  ·  ")}
                                 </p>
                             )}
                             {infoLine && (
-                                <p className="text-indigo-300 text-[11px] mt-1.5 leading-snug">
-                                    {infoLine}
-                                </p>
+                                <p className="text-slate-400 text-[11px] mt-1 leading-snug">{infoLine}</p>
                             )}
                         </div>
 
                         {/* Responsável */}
                         {org?.owner_name && (
-                            <div className="shrink-0 text-right hidden sm:block border-l border-indigo-500 pl-4">
-                                <p className="text-[10px] text-indigo-300 uppercase tracking-wide">Responsável</p>
-                                <p className="text-sm font-semibold text-white leading-tight mt-0.5">{org.owner_name}</p>
+                            <div className="shrink-0 text-right hidden sm:block border-l border-slate-100 dark:border-zinc-700 pl-4">
+                                <p className="text-[10px] text-slate-400 uppercase tracking-wide">Responsável</p>
+                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight mt-0.5">{org.owner_name}</p>
                             </div>
                         )}
                     </div>
 
                     {org?.owner_name && (
-                        <div className="mt-2.5 flex items-center gap-1.5 sm:hidden border-t border-indigo-600 pt-2">
-                            <User className="h-3 w-3 text-indigo-300" />
-                            <p className="text-xs text-indigo-200">Resp.: {org.owner_name}</p>
+                        <div className="mt-2.5 flex items-center gap-1.5 sm:hidden border-t border-slate-100 dark:border-zinc-800 pt-2">
+                            <User className="h-3 w-3 text-slate-400" />
+                            <p className="text-xs text-slate-500">Resp.: {org.owner_name}</p>
                         </div>
                     )}
                 </div>
 
+                {/* Linha separadora */}
+                <div className="border-t border-slate-200 dark:border-zinc-800" />
+
                 {/* Faixa do cliente */}
-                <div className="border-t border-indigo-600 bg-indigo-800/60 px-5 py-3">
+                <div className="bg-slate-50 dark:bg-zinc-950 px-5 py-3">
                     <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
                         <div>
-                            <p className="text-[10px] text-indigo-300 uppercase tracking-wide font-semibold">Para</p>
-                            <p className="text-sm font-bold text-white leading-tight mt-0.5">{budget.client_name}</p>
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold">Para</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight mt-0.5">{budget.client_name}</p>
                             {budget.client_address && (
-                                <p className="text-indigo-300 text-[11px] mt-0.5">{budget.client_address}</p>
+                                <p className="text-slate-500 text-[11px] mt-0.5">{budget.client_address}</p>
                             )}
                         </div>
                         <div className="text-right shrink-0">
-                            <p className="text-xs font-mono text-indigo-200 font-semibold">{budget.budget_number}</p>
+                            <p className="text-xs font-mono text-indigo-500 font-semibold">{budget.budget_number}</p>
                             <p className={`text-xs font-semibold mt-0.5 ${statusInfo.color}`}>{statusInfo.text}</p>
                         </div>
                     </div>
                 </div>
+
+                {/* Linha separadora inferior */}
+                <div className="border-t border-slate-200 dark:border-zinc-800" />
             </div>
 
             <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
