@@ -8,6 +8,7 @@ import { BudgetPaymentSimulator } from "@/components/budget-payment-simulator";
 import { generateBudgetPDF } from "@/lib/generate-budget-pdf";
 import { ShieldCheck, LockOpen, User, FileDown, Printer, Clock, CheckCircle2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface OrgData {
     name: string;
@@ -51,9 +52,10 @@ export default function PublicBudgetPage() {
     const { token } = useParams<{ token: string }>();
     const [budget, setBudget]           = useState<PublicBudget | null>(null);
     const [loading, setLoading]         = useState(true);
-    const [acting, setActing]           = useState(false);
+    const [acting, setActing]               = useState(false);
     const [generatingPDF, setGeneratingPDF] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<'prazo' | 'avista' | null>(null);
+    const [alertOpen, setAlertOpen]         = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -76,7 +78,7 @@ export default function PublicBudgetPage() {
 
     const handleAction = async (status: 'approved' | 'sent') => {
         if (status === 'approved' && !selectedPayment) {
-            toast.error("Selecione uma condição de pagamento antes de autorizar.");
+            setAlertOpen(true);
             return;
         }
         setActing(true);
@@ -369,6 +371,27 @@ export default function PublicBudgetPage() {
                     Orçamento gerado pelo sistema Marcenaria Pro
                 </p>
             </div>
+
+            {/* Alerta: condição de pagamento não selecionada */}
+            <Dialog open={alertOpen} onOpenChange={setAlertOpen}>
+                <DialogContent className="sm:max-w-xs text-center">
+                    <DialogHeader>
+                        <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+                            <ShieldCheck className="h-6 w-6 text-amber-500" />
+                        </div>
+                        <DialogTitle className="text-center text-base">Escolha uma condição de pagamento</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-slate-500 -mt-1">
+                        Selecione <strong>A Prazo</strong> ou <strong>À Vista</strong> antes de autorizar o contrato.
+                    </p>
+                    <DialogFooter className="sm:justify-center mt-1">
+                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                            onClick={() => setAlertOpen(false)}>
+                            Entendido
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
