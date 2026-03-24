@@ -38,6 +38,7 @@ export interface BudgetPDFData {
     avistaEntryPercent: number;
     environments: BudgetEnvironmentPDF[];
     observations?: string;
+    responsibleName?: string;
 }
 
 // Converte URL de imagem para base64
@@ -93,43 +94,42 @@ export async function generateBudgetPDF(data: BudgetPDFData) {
     doc.rect(0, 0, W, 2, "F");
 
     // ── CABEÇALHO ───────────────────────────────────────────
-    const HEADER_H = 48;
+    const HEADER_H = 52;
     doc.setFillColor(...INDIGO);
     doc.rect(0, 2, W, HEADER_H, "F");
 
-    // Logo
-    const LOGO_X = ML;
-    const LOGO_Y = 6;
-    const LOGO_SIZE = 22;
+    // Logo — caixa maior sem compressão
+    const LOGO_X    = ML;
+    const LOGO_Y    = 5;
+    const LOGO_W    = 34;
+    const LOGO_H    = 34;
 
     if (logoBase64) {
-        // Caixa branca para o logo
         doc.setFillColor(255, 255, 255);
-        doc.roundedRect(LOGO_X, LOGO_Y, LOGO_SIZE, LOGO_SIZE, 2, 2, "F");
+        doc.roundedRect(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, 3, 3, "F");
         try {
-            // Detecta tipo da imagem
             const imgType = logoBase64.includes('image/png') ? 'PNG'
                 : logoBase64.includes('image/jpeg') || logoBase64.includes('image/jpg') ? 'JPEG'
                 : 'PNG';
-            doc.addImage(logoBase64, imgType, LOGO_X + 1, LOGO_Y + 1, LOGO_SIZE - 2, LOGO_SIZE - 2);
+            // padding mínimo (0.5) para preservar as bordas arredondadas
+            doc.addImage(logoBase64, imgType, LOGO_X + 0.5, LOGO_Y + 0.5, LOGO_W - 1, LOGO_H - 1);
         } catch { /* ignora se falhar */ }
     } else {
-        // Placeholder: quadrado com inicial
         doc.setFillColor(255, 255, 255, 0.2);
-        doc.roundedRect(LOGO_X, LOGO_Y, LOGO_SIZE, LOGO_SIZE, 2, 2, "F");
+        doc.roundedRect(LOGO_X, LOGO_Y, LOGO_W, LOGO_H, 3, 3, "F");
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
+        doc.setFontSize(18);
         doc.text(
             (data.orgName || "M").charAt(0).toUpperCase(),
-            LOGO_X + LOGO_SIZE / 2,
-            LOGO_Y + LOGO_SIZE / 2 + 4,
+            LOGO_X + LOGO_W / 2,
+            LOGO_Y + LOGO_H / 2 + 5,
             { align: "center" }
         );
     }
 
     // Nome da empresa
-    const TX = LOGO_X + LOGO_SIZE + 5;
+    const TX = LOGO_X + LOGO_W + 5;
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(15);
@@ -205,7 +205,7 @@ export async function generateBudgetPDF(data: BudgetPDFData) {
 
     y += (data.clientAddress ? 20 : 13) + 8;
 
-    // ── CONDIÇÕES DE PAGAMENTO ──────────────────────────────
+    // cálculos de pagamento (usados na tabela e nos cards do rodapé)
     const showPrazo  = data.paymentType === 'prazo'  || data.paymentType === 'both';
     const showAvista = data.paymentType === 'avista' || data.paymentType === 'both';
 
@@ -215,81 +215,6 @@ export async function generateBudgetPDF(data: BudgetPDFData) {
     const avistaTotal      = data.totalPrazo * (1 - data.avistaDiscountPercent / 100);
     const avistaEntry      = avistaTotal * (data.avistaEntryPercent / 100);
     const avistaRemainder  = avistaTotal - avistaEntry;
-
-    checkPage(55);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...GRAY);
-    doc.text("CONDIÇÕES DE PAGAMENTO", ML, y);
-    y += 4;
-
-    const colW = showPrazo && showAvista ? (W - ML * 2 - 4) / 2 : W - ML * 2;
-
-    if (showPrazo) {
-        const bx = ML;
-        const bh = 32;
-        doc.setFillColor(...INDIGO_L);
-        doc.roundedRect(bx, y, colW, bh, 2, 2, "F");
-        doc.setDrawColor(...INDIGO);
-        doc.roundedRect(bx, y, colW, bh, 2, 2, "S");
-
-        // Label
-        doc.setFillColor(...INDIGO);
-        doc.roundedRect(bx, y, colW, 9, 2, 2, "F");
-        doc.rect(bx, y + 4, colW, 5, "F"); // cobre cantos inferiores arredondados
-        doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.text("A PRAZO — CARTÃO DE CRÉDITO", bx + colW / 2, y + 6, { align: "center" });
-
-        doc.setTextColor(...DARK);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(13);
-        doc.text(fmt(data.totalPrazo), bx + colW / 2, y + 17, { align: "center" });
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.5);
-        doc.setTextColor(...GRAY);
-        doc.text(
-            `Entrada: ${fmt(prazoEntry)} (${data.prazoEntryPercent}%) + ${data.prazoInstallments}x de ${fmt(prazoInstallment)}`,
-            bx + colW / 2, y + 24, { align: "center" }
-        );
-        doc.text("via cartão de crédito", bx + colW / 2, y + 29, { align: "center" });
-    }
-
-    if (showAvista) {
-        const bx = showPrazo ? ML + colW + 4 : ML;
-        const bh = 32;
-        doc.setFillColor(...GREEN_L);
-        doc.roundedRect(bx, y, colW, bh, 2, 2, "F");
-        doc.setDrawColor(...GREEN);
-        doc.roundedRect(bx, y, colW, bh, 2, 2, "S");
-
-        doc.setFillColor(...GREEN);
-        doc.roundedRect(bx, y, colW, 9, 2, 2, "F");
-        doc.rect(bx, y + 4, colW, 5, "F");
-        doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.text(`À VISTA — PIX (-${data.avistaDiscountPercent}%)`, bx + colW / 2, y + 6, { align: "center" });
-
-        doc.setTextColor(...DARK);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(13);
-        doc.text(fmt(avistaTotal), bx + colW / 2, y + 17, { align: "center" });
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.5);
-        doc.setTextColor(...GRAY);
-        doc.text(
-            `Entrada: ${fmt(avistaEntry)} (${data.avistaEntryPercent}%) + Saldo: ${fmt(avistaRemainder)}`,
-            bx + colW / 2, y + 24, { align: "center" }
-        );
-        doc.text("na finalização da montagem via PIX", bx + colW / 2, y + 29, { align: "center" });
-    }
-
-    y += 38;
 
     // ── TABELA DE ITENS ──────────────────────────────────────
     const COL_QTY   = ML;
@@ -380,56 +305,142 @@ export async function generateBudgetPDF(data: BudgetPDFData) {
         doc.setLineWidth(1);
     }
 
-    // ── TOTAL GERAL ──────────────────────────────────────────
-    checkPage(14);
-    doc.setFillColor(...INDIGO);
-    doc.rect(ML, y, W - ML * 2, 11, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("TOTAL", ML + 4, y + 7);
-    doc.text(fmt(data.totalPrazo), COL_PRAZO, y + 7, { align: "right" });
-    if (showAvista) doc.text(fmt(avistaTotal), COL_VIST, y + 7, { align: "right" });
-    y += 17;
+    // ── CARDS DE PAGAMENTO (no lugar do TOTAL) ───────────────
+    checkPage(42);
+    y += 4;
 
-    // ── OBSERVAÇÕES ──────────────────────────────────────────
-    if (data.observations) {
-        checkPage(24);
+    const colW = showPrazo && showAvista ? (W - ML * 2 - 4) / 2 : W - ML * 2;
+
+    if (showPrazo) {
+        const bx = ML;
+        const bh = 32;
+        doc.setFillColor(...INDIGO_L);
+        doc.roundedRect(bx, y, colW, bh, 2, 2, "F");
+        doc.setDrawColor(...INDIGO);
+        doc.roundedRect(bx, y, colW, bh, 2, 2, "S");
+
+        doc.setFillColor(...INDIGO);
+        doc.roundedRect(bx, y, colW, 9, 2, 2, "F");
+        doc.rect(bx, y + 4, colW, 5, "F");
+        doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
         doc.setFontSize(8);
-        doc.setTextColor(...GRAY);
-        doc.text("OBSERVAÇÕES", ML, y);
-        y += 4;
+        doc.text("A PRAZO — CARTÃO DE CRÉDITO", bx + colW / 2, y + 6, { align: "center" });
 
-        const obsLines = doc.splitTextToSize(data.observations, W - ML * 2 - 4);
-        const obsH = obsLines.length * 4.5 + 6;
-        doc.setFillColor(...XLGRAY);
-        doc.roundedRect(ML, y, W - ML * 2, obsH, 2, 2, "F");
+        doc.setTextColor(...DARK);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.text(fmt(data.totalPrazo), bx + colW / 2, y + 17, { align: "center" });
+
         doc.setFont("helvetica", "normal");
         doc.setFontSize(7.5);
-        doc.setTextColor(...DARK);
-        doc.text(obsLines, ML + 3, y + 5);
-        y += obsH + 8;
+        doc.setTextColor(...GRAY);
+        doc.text(
+            `Entrada: ${fmt(prazoEntry)} (${data.prazoEntryPercent}%) + ${data.prazoInstallments}x de ${fmt(prazoInstallment)}`,
+            bx + colW / 2, y + 24, { align: "center" }
+        );
+        doc.text("via cartão de crédito", bx + colW / 2, y + 29, { align: "center" });
     }
 
-    // ── ASSINATURA ───────────────────────────────────────────
-    checkPage(28);
-    y += 4;
-    const sigW = (W - ML * 2 - 10) / 2;
+    if (showAvista) {
+        const bx = showPrazo ? ML + colW + 4 : ML;
+        const bh = 32;
+        doc.setFillColor(...GREEN_L);
+        doc.roundedRect(bx, y, colW, bh, 2, 2, "F");
+        doc.setDrawColor(...GREEN);
+        doc.roundedRect(bx, y, colW, bh, 2, 2, "S");
 
-    doc.setDrawColor(...LGRAY);
-    doc.setLineWidth(0.4);
-    doc.line(ML,           y + 14, ML + sigW,           y + 14);
-    doc.line(MR - sigW,    y + 14, MR,                  y + 14);
+        doc.setFillColor(...GREEN);
+        doc.roundedRect(bx, y, colW, 9, 2, 2, "F");
+        doc.rect(bx, y + 4, colW, 5, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.text(`À VISTA — PIX (-${data.avistaDiscountPercent}%)`, bx + colW / 2, y + 6, { align: "center" });
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...GRAY);
-    doc.text("Assinatura do Cliente",     ML,           y + 19);
-    doc.text(data.clientName,             ML,           y + 24);
+        doc.setTextColor(...DARK);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.text(fmt(avistaTotal), bx + colW / 2, y + 17, { align: "center" });
 
-    doc.text("Assinatura da Marcenaria",  MR - sigW,    y + 19);
-    doc.text(data.orgName,                MR - sigW,    y + 24);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(...GRAY);
+        doc.text(
+            `Entrada: ${fmt(avistaEntry)} (${data.avistaEntryPercent}%) + Saldo: ${fmt(avistaRemainder)}`,
+            bx + colW / 2, y + 24, { align: "center" }
+        );
+        doc.text("na finalização da montagem via PIX", bx + colW / 2, y + 29, { align: "center" });
+    }
+
+    y += 38;
+
+    // ── OBSERVAÇÕES + RESPONSÁVEL ────────────────────────────
+    const hasObs  = !!data.observations;
+    const hasResp = !!data.responsibleName;
+
+    if (hasObs || hasResp) {
+        const RESP_W = 58; // largura do card responsável
+        const obsW   = hasResp ? W - ML * 2 - RESP_W - 4 : W - ML * 2;
+
+        // Calcula altura necessária para as observações
+        const obsLines = hasObs
+            ? doc.splitTextToSize(data.observations!, obsW - 4)
+            : [];
+        const obsH = hasObs ? Math.max(obsLines.length * 4.5 + 6, 22) : 0;
+        const respH = 22;
+        const blockH = hasResp ? Math.max(obsH, respH) : obsH;
+
+        checkPage(blockH + 12);
+
+        if (hasObs) {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(...GRAY);
+            doc.text("OBSERVAÇÕES", ML, y);
+            y += 3;
+
+            doc.setFillColor(...XLGRAY);
+            doc.roundedRect(ML, y, obsW, blockH, 2, 2, "F");
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7.5);
+            doc.setTextColor(...DARK);
+            doc.text(obsLines, ML + 3, y + 5);
+        }
+
+        if (hasResp) {
+            const rx = ML + obsW + 4;
+            const ry = hasObs ? y : y + 3;
+
+            if (!hasObs) {
+                // avança y pelo label se não há observações
+                y += 3;
+            }
+
+            doc.setFillColor(...INDIGO_L);
+            doc.roundedRect(rx, ry, RESP_W, blockH, 2, 2, "F");
+            doc.setDrawColor(...INDIGO);
+            doc.roundedRect(rx, ry, RESP_W, blockH, 2, 2, "S");
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(6.5);
+            doc.setTextColor(...INDIGO);
+            doc.text("RESPONSÁVEL PELO ORÇAMENTO", rx + RESP_W / 2, ry + 6, { align: "center" });
+
+            doc.setDrawColor(...INDIGO);
+            doc.setLineWidth(0.2);
+            doc.line(rx + 4, ry + 8, rx + RESP_W - 4, ry + 8);
+            doc.setLineWidth(1);
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8.5);
+            doc.setTextColor(...DARK);
+            const nameLines = doc.splitTextToSize(data.responsibleName!, RESP_W - 6);
+            doc.text(nameLines, rx + RESP_W / 2, ry + 14, { align: "center" });
+        }
+
+        y += blockH + 8;
+    }
 
     // ── RODAPÉ ───────────────────────────────────────────────
     doc.setDrawColor(...LGRAY);

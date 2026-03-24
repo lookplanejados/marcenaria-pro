@@ -50,7 +50,7 @@ export default function BudgetDetailPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const isNew = searchParams.get('new') === 'true';
-    const { isCarpenter, loading: rbacLoading } = useRBAC();
+    const { isCarpenter, loading: rbacLoading, profile } = useRBAC();
 
     const [budget, setBudget]     = useState<Budget | null>(null);
     const [loading, setLoading]   = useState(true);
@@ -201,6 +201,7 @@ export default function BudgetDetailPage() {
             avistaEntryPercent:    budget.avista_entry_percent,
             environments: activeEnvs,
             observations: budget.observations,
+            responsibleName: profile?.full_name || orgData.owner_name,
         });
     };
 
