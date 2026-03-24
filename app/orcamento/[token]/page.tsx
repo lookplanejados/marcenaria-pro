@@ -209,95 +209,100 @@ export default function PublicBudgetPage() {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
 
-            {/* ── CABEÇALHO — estilo PDF, fundo branco ─────────── */}
-            <div className="bg-white dark:bg-zinc-900 shadow-sm">
-                <div className="max-w-2xl mx-auto px-5 py-5">
-                    <div className="flex items-start gap-4">
+            <div className="max-w-2xl mx-auto px-4 pt-5 pb-1">
 
-                        {/* Logo */}
-                        <div className="shrink-0">
-                            {org?.logo_url ? (
-                                <img src={org.logo_url} alt="Logo"
-                                    className="h-20 w-20 object-contain rounded-xl" />
-                            ) : (
-                                <div className="h-20 w-20 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-4xl font-black">
-                                    {(org?.name || "M").charAt(0).toUpperCase()}
-                                </div>
-                            )}
-                        </div>
+                {/* ── CABEÇALHO — card da empresa ─────────── */}
+                <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+                    <div className="px-5 py-5">
+                        <div className="flex items-start gap-4">
 
-                        {/* Dados da empresa */}
-                        <div className="flex-1 min-w-0">
-                            <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
-                                {org?.name || "Marcenaria"}
-                            </h1>
-                            {(org?.company_name || org?.cnpj) && (
-                                <p className="text-slate-500 text-xs mt-1">
-                                    {[org?.company_name, org?.cnpj ? `CNPJ: ${org.cnpj}` : null].filter(Boolean).join("  ·  ")}
-                                </p>
-                            )}
-                            {infoLine && (
-                                <p className="text-slate-400 text-[11px] mt-1.5 leading-snug">{infoLine}</p>
-                            )}
-                        </div>
+                            {/* Logo */}
+                            <div className="shrink-0">
+                                {org?.logo_url ? (
+                                    <img src={org.logo_url} alt="Logo"
+                                        className="h-20 w-20 object-contain rounded-xl" />
+                                ) : (
+                                    <div className="h-20 w-20 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-4xl font-black">
+                                        {(org?.name || "M").charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* Validade + Responsável */}
-                        <div className="shrink-0 text-right hidden sm:block">
-                            <p className="text-xl font-black text-indigo-600 leading-tight">ORÇAMENTO</p>
-                            <p className="text-xs text-slate-500 mt-1.5">Válido até: <span className="font-semibold text-slate-700 dark:text-slate-200">{validityDate}</span></p>
-                            {org?.owner_name && (
-                                <p className="text-xs text-slate-500 mt-0.5">Resp.: <span className="font-semibold text-slate-700 dark:text-slate-200">{org.owner_name}</span></p>
-                            )}
+                            {/* Dados da empresa */}
+                            <div className="flex-1 min-w-0">
+                                <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
+                                    {org?.name || "Marcenaria"}
+                                </h1>
+                                {(org?.company_name || org?.cnpj) && (
+                                    <p className="text-slate-500 text-sm mt-1 leading-snug">
+                                        {[org?.company_name, org?.cnpj ? `CNPJ: ${org.cnpj}` : null].filter(Boolean).join("  ·  ")}
+                                    </p>
+                                )}
+                                {infoLine && (
+                                    <p className="text-slate-400 text-xs mt-1.5 leading-snug">{infoLine}</p>
+                                )}
+                            </div>
+
+                            {/* Validade + Responsável — desktop */}
+                            <div className="shrink-0 text-right hidden sm:block">
+                                <p className="text-xl font-black text-indigo-600 leading-tight">ORÇAMENTO</p>
+                                <p className="text-sm text-slate-500 mt-1.5">Válido até: <span className="font-semibold text-slate-700 dark:text-slate-200">{validityDate}</span></p>
+                                {org?.owner_name && (
+                                    <p className="text-sm text-slate-500 mt-0.5">Resp.: <span className="font-semibold text-slate-700 dark:text-slate-200">{org.owner_name}</span></p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Mobile: validade + resp */}
-                    <div className="mt-3 sm:hidden flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 pt-2">
-                        <p className="text-xs text-slate-500">Válido até: <span className="font-medium">{validityDate}</span></p>
+                    {/* Mobile: validade + resp — dentro do card */}
+                    <div className="sm:hidden border-t border-slate-100 dark:border-zinc-800 px-5 py-3 flex flex-wrap gap-x-5 gap-y-1.5 bg-slate-50 dark:bg-zinc-800/40">
+                        <p className="text-sm text-slate-500">
+                            Válido até: <span className="font-semibold text-slate-700 dark:text-slate-200">{validityDate}</span>
+                        </p>
                         {org?.owner_name && (
-                            <p className="text-xs text-slate-500 flex items-center gap-1">
-                                <User className="h-3 w-3" />Resp.: <span className="font-medium">{org.owner_name}</span>
+                            <p className="text-sm text-slate-500 flex items-center gap-1">
+                                <User className="h-3.5 w-3.5" />
+                                <span>Resp.: <span className="font-semibold text-slate-700 dark:text-slate-200">{org.owner_name}</span></span>
                             </p>
                         )}
                     </div>
                 </div>
-
-                {/* Separador inferior */}
-                <div className="border-t border-slate-200 dark:border-zinc-800" />
             </div>
 
-            <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+            <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
 
                 {/* Card do cliente */}
                 <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex overflow-hidden">
                     {/* Label PARA */}
-                    <div className="bg-indigo-50 dark:bg-indigo-900/20 border-r border-slate-200 dark:border-zinc-700 flex items-center justify-center px-4 shrink-0">
-                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">PARA</span>
+                    <div className="bg-indigo-600 flex items-center justify-center px-4 shrink-0">
+                        <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">PARA</span>
                     </div>
-                    <div className="px-4 py-3">
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">{budget.client_name}</p>
+                    <div className="px-4 py-4">
+                        <p className="text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">{budget.client_name}</p>
                         {budget.client_address && (
-                            <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">{budget.client_address}</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{budget.client_address}</p>
                         )}
                     </div>
                 </div>
 
                 {/* Status + Ações de download — entre cabeçalho e itens */}
-                <div className={`rounded-xl border ${statusInfo.bg} ${statusInfo.border} px-4 py-3 flex items-center justify-between gap-3`}>
-                    <div className="flex items-center gap-2">
-                        <StatusIcon className={`h-4 w-4 shrink-0 ${statusInfo.text_c}`} />
-                        <p className={`text-sm font-semibold ${statusInfo.text_c}`}>{statusInfo.text}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5"
-                            onClick={handleDownloadPDF} disabled={generatingPDF}>
-                            <FileDown className="h-3.5 w-3.5" />
-                            {generatingPDF ? "Gerando..." : "Baixar PDF"}
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0"
-                            title="Imprimir" onClick={() => window.print()}>
-                            <Printer className="h-3.5 w-3.5" />
-                        </Button>
+                <div className={`rounded-xl border ${statusInfo.bg} ${statusInfo.border} px-4 py-3`}>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <StatusIcon className={`h-5 w-5 shrink-0 ${statusInfo.text_c}`} />
+                            <p className={`text-base font-bold ${statusInfo.text_c}`}>{statusInfo.text}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <Button size="sm" variant="outline" className="h-9 text-sm gap-1.5 px-3"
+                                onClick={handleDownloadPDF} disabled={generatingPDF}>
+                                <FileDown className="h-4 w-4" />
+                                {generatingPDF ? "Gerando..." : "Baixar PDF"}
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-9 w-9 p-0"
+                                title="Imprimir" onClick={() => window.print()}>
+                                <Printer className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -314,7 +319,7 @@ export default function PublicBudgetPage() {
 
                 {/* Ambientes */}
                 <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-3">
-                    <h2 className="font-semibold text-sm">Itens do Orçamento</h2>
+                    <h2 className="font-bold text-base text-slate-800 dark:text-slate-100">Itens do Orçamento</h2>
                     <BudgetEnvironmentEditor
                         token={token}
                         readOnly={budget.status === 'approved'}
@@ -326,8 +331,8 @@ export default function PublicBudgetPage() {
                 {/* Condições de Pagamento */}
                 <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-3">
                     <div className="flex items-center gap-1.5">
-                        <h2 className="font-semibold text-sm">Escolha a condição de pagamento:</h2>
-                        {budget.status !== 'approved' && <span className="text-red-500 text-sm font-bold">*</span>}
+                        <h2 className="font-bold text-base text-slate-800 dark:text-slate-100">Escolha a condição de pagamento</h2>
+                        {budget.status !== 'approved' && <span className="text-red-500 text-base font-bold">*</span>}
                     </div>
                     <BudgetPaymentSimulator
                         budget={budget}
@@ -342,28 +347,28 @@ export default function PublicBudgetPage() {
                 {/* Observações */}
                 {budget.observations && (
                     <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-2">
-                        <h2 className="font-semibold text-sm">Observações</h2>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap">{budget.observations}</p>
+                        <h2 className="font-bold text-base text-slate-800 dark:text-slate-100">Observações</h2>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">{budget.observations}</p>
                     </div>
                 )}
 
                 {/* Ação principal */}
                 {budget.status !== 'approved' ? (
                     <Button
-                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white h-12 text-base font-semibold"
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white h-14 text-lg font-bold rounded-xl shadow-md"
                         onClick={() => handleAction('approved')}
                         disabled={acting}
                     >
-                        <ShieldCheck className="h-5 w-5 mr-2" />Autorizar Contrato
+                        <ShieldCheck className="h-6 w-6 mr-2" />Autorizar Contrato
                     </Button>
                 ) : (
                     <Button
                         variant="outline"
-                        className="w-full text-amber-600 border-amber-300 hover:bg-amber-50 h-11"
+                        className="w-full text-amber-600 border-amber-300 hover:bg-amber-50 h-12 text-base font-semibold rounded-xl"
                         onClick={() => handleAction('sent')}
                         disabled={acting}
                     >
-                        <LockOpen className="h-4 w-4 mr-2" />Reabrir Orçamento
+                        <LockOpen className="h-5 w-5 mr-2" />Reabrir Orçamento
                     </Button>
                 )}
 

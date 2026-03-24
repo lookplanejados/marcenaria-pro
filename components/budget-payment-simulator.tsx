@@ -59,7 +59,7 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, hid
                 {showPrazo && (
                     <div
                         onClick={() => onSelectPayment?.('prazo')}
-                        className={`rounded-xl border overflow-hidden transition-all ${isSelectable ? 'cursor-pointer' : ''} ${
+                        className={`rounded-xl border overflow-hidden transition-all ${isSelectable ? 'cursor-pointer active:scale-[0.98]' : ''} ${
                             selectedPayment === 'prazo'
                                 ? 'border-indigo-400 ring-2 ring-indigo-300'
                                 : isSelectable
@@ -68,25 +68,32 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, hid
                         }`}
                     >
                         {/* Header do card */}
-                        <div className="bg-indigo-50 border-b border-indigo-100 px-3 py-2 flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide leading-tight">
-                                A Prazo — Cartão de Crédito
-                            </span>
+                        <div className="bg-indigo-600 px-3 py-2.5 flex items-center justify-between gap-2">
+                            <div>
+                                <p className="text-[10px] font-semibold text-indigo-200 uppercase tracking-widest leading-none mb-0.5">Cartão de Crédito</p>
+                                <p className="text-sm font-black text-white leading-tight">A Prazo</p>
+                            </div>
                             {isSelectable && (
-                                <div className={`h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                                    selectedPayment === 'prazo' ? 'border-indigo-500 bg-indigo-500' : 'border-slate-300'
+                                <div className={`h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                                    selectedPayment === 'prazo' ? 'border-white bg-white' : 'border-indigo-300'
                                 }`}>
-                                    {selectedPayment === 'prazo' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                    {selectedPayment === 'prazo' && <div className="h-2 w-2 rounded-full bg-indigo-600" />}
                                 </div>
                             )}
                         </div>
                         {/* Valor */}
-                        <div className="bg-white px-3 py-3 text-center">
-                            <p className="text-xl font-black text-slate-800">{fmt(local.total_prazo)}</p>
-                            <p className="text-[11px] text-slate-500 mt-1.5 leading-tight">
-                                Entrada: {fmt(prazoEntry)} ({local.prazo_entry_percent}%) + {local.prazo_installments}x de {fmt(prazoInstallment)}
-                            </p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">via cartão de crédito</p>
+                        <div className="bg-white px-3 py-4 text-center space-y-2">
+                            <p className="text-2xl font-black text-slate-800 leading-none">{fmt(local.total_prazo)}</p>
+                            <div className="space-y-1 border-t border-slate-100 pt-2">
+                                <p className="text-xs text-slate-500 leading-snug">
+                                    Entrada <span className="font-bold text-slate-700">{fmt(prazoEntry)}</span>
+                                    <span className="text-slate-400"> ({local.prazo_entry_percent}%)</span>
+                                </p>
+                                <p className="text-base font-black text-indigo-600 leading-none">
+                                    {local.prazo_installments}x {fmt(prazoInstallment)}
+                                </p>
+                                <p className="text-[11px] text-slate-400">saldo restante parcelado</p>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -94,7 +101,7 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, hid
                 {showAvista && (
                     <div
                         onClick={() => onSelectPayment?.('avista')}
-                        className={`rounded-xl border overflow-hidden transition-all ${isSelectable ? 'cursor-pointer' : ''} ${
+                        className={`rounded-xl border overflow-hidden transition-all ${isSelectable ? 'cursor-pointer active:scale-[0.98]' : ''} ${
                             selectedPayment === 'avista'
                                 ? 'border-emerald-400 ring-2 ring-emerald-300'
                                 : isSelectable
@@ -103,25 +110,35 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, hid
                         }`}
                     >
                         {/* Header do card */}
-                        <div className="bg-emerald-50 border-b border-emerald-100 px-3 py-2 flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide leading-tight">
-                                À Vista — PIX (-{local.avista_discount_percent}%)
-                            </span>
+                        <div className="bg-emerald-600 px-3 py-2.5 flex items-center justify-between gap-2">
+                            <div>
+                                <p className="text-[10px] font-semibold text-emerald-200 uppercase tracking-widest leading-none mb-0.5">PIX / Dinheiro</p>
+                                <p className="text-sm font-black text-white leading-tight">À Vista</p>
+                            </div>
                             {isSelectable && (
-                                <div className={`h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                                    selectedPayment === 'avista' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
+                                <div className={`h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                                    selectedPayment === 'avista' ? 'border-white bg-white' : 'border-emerald-300'
                                 }`}>
-                                    {selectedPayment === 'avista' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                    {selectedPayment === 'avista' && <div className="h-2 w-2 rounded-full bg-emerald-600" />}
                                 </div>
                             )}
                         </div>
                         {/* Valor */}
-                        <div className="bg-white px-3 py-3 text-center">
-                            <p className="text-xl font-black text-slate-800">{fmt(avistaTotal)}</p>
-                            <p className="text-[11px] text-slate-500 mt-1.5 leading-tight">
-                                Entrada: {fmt(avistaEntry)} ({local.avista_entry_percent}%) + Saldo: {fmt(avistaRemainder)}
-                            </p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">na finalização da montagem via PIX</p>
+                        <div className="bg-white px-3 py-4 text-center space-y-2">
+                            <div>
+                                <p className="text-2xl font-black text-slate-800 leading-none">{fmt(avistaTotal)}</p>
+                                <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">{local.avista_discount_percent}% de desconto</p>
+                            </div>
+                            <div className="space-y-1 border-t border-slate-100 pt-2">
+                                <p className="text-xs text-slate-500 leading-snug">
+                                    Entrada <span className="font-bold text-slate-700">{fmt(avistaEntry)}</span>
+                                    <span className="text-slate-400"> ({local.avista_entry_percent}%)</span>
+                                </p>
+                                <p className="text-base font-black text-emerald-600 leading-none">
+                                    Saldo {fmt(avistaRemainder)}
+                                </p>
+                                <p className="text-[11px] text-slate-400">na entrega via PIX</p>
+                            </div>
                         </div>
                     </div>
                 )}
