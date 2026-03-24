@@ -125,7 +125,7 @@ export default function SettingsPage() {
             const res = await fetch('/api/settings', {
                 method: 'PUT',
                 headers: { ...h, 'Content-Type': 'application/json' },
-                body: JSON.stringify(paymentDefaults),
+                body: JSON.stringify({ ...paymentDefaults, budget_validity_days: companyData.budget_validity_days }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
@@ -283,13 +283,6 @@ export default function SettingsPage() {
                             placeholder="Rua, número, bairro, cidade - UF"
                             onChange={e => setCompanyData(p => ({ ...p, address: e.target.value }))} />
                     </div>
-                    <div className="space-y-2">
-                        <Label>Validade do Orçamento (dias)</Label>
-                        <Input type="number" min={1} max={365} value={companyData.budget_validity_days}
-                            disabled={!isCompanyEditable}
-                            placeholder="30"
-                            onChange={e => setCompanyData(p => ({ ...p, budget_validity_days: parseInt(e.target.value) || 30 }))} />
-                    </div>
                 </div>
 
                 {/* Dados do proprietário */}
@@ -396,6 +389,14 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     )}
+
+                    <div className="space-y-2">
+                        <Label>Validade do Orçamento (dias)</Label>
+                        <Input type="number" min={1} max={365} value={companyData.budget_validity_days}
+                            placeholder="30"
+                            onChange={e => setCompanyData(p => ({ ...p, budget_validity_days: parseInt(e.target.value) || 30 }))} />
+                        <p className="text-xs text-slate-400">Prazo de validade exibido no PDF do orçamento.</p>
+                    </div>
 
                     <Button onClick={handleSavePayment} disabled={loadingPayment} className="bg-indigo-600 hover:bg-indigo-700 text-white">
                         <Save className="h-4 w-4 mr-2" />
