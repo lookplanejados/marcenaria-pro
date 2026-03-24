@@ -88,9 +88,15 @@ export default function PublicBudgetPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'set_status', status, chosen_payment_type: selectedPayment }),
             });
-            setBudget(prev => prev ? { ...prev, status } : null);
-            if (status === 'approved') toast.success("Contrato autorizado! A marcenaria entrará em contato.");
-            else toast.success("Orçamento reaberto.");
+            if (status === 'sent') {
+                // Reabrir: volta payment_type para 'both' e limpa a seleção
+                setBudget(prev => prev ? { ...prev, status, payment_type: 'both' } : null);
+                setSelectedPayment(null);
+                toast.success("Orçamento reaberto. Escolha novamente a condição de pagamento.");
+            } else {
+                setBudget(prev => prev ? { ...prev, status } : null);
+                toast.success("Contrato autorizado! A marcenaria entrará em contato.");
+            }
         } finally {
             setActing(false);
         }

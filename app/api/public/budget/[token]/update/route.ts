@@ -22,7 +22,13 @@ export async function PATCH(req: Request, { params }: { params: { token: string 
         // Atualizar status do orçamento (aprovado/rejeitado pelo cliente)
         if (action === 'set_status' && status) {
             const updatePayload: any = { status, updated_at: new Date().toISOString() };
-            if (chosen_payment_type) updatePayload.payment_type = chosen_payment_type;
+            if (chosen_payment_type) {
+                // Ao autorizar: salva a condição escolhida
+                updatePayload.payment_type = chosen_payment_type;
+            } else if (status === 'sent') {
+                // Ao reabrir: restaura para 'both' para que o cliente escolha novamente
+                updatePayload.payment_type = 'both';
+            }
             await supabaseAdmin.from('budgets').update(updatePayload).eq('id', budget.id);
             return NextResponse.json({ ok: true });
         }
