@@ -76,3 +76,43 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* ── Estilos de impressão ──────────────────────────────────── */
+@media print {
+  /* Força impressão de cores e fundos em todos os elementos */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Fundo branco na página */
+  html, body {
+    background: white !important;
+  }
+
+  /* Remove sombras */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Bordas sempre visíveis com pelo menos 1px */
+  [class*="border"] {
+    border-width: max(1px, 0.5pt) !important;
+  }
+
+  /* Evita quebras de página dentro de cards */
+  .rounded-xl,
+  .rounded-2xl {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Margem da página */
+  @page {
+    margin: 1.5cm;
+  }
+}

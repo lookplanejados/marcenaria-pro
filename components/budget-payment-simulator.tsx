@@ -74,7 +74,7 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, hid
                                 <p className="text-sm font-black text-white leading-tight">A Prazo</p>
                             </div>
                             {isSelectable && (
-                                <div className={`h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                                <div className={`print:hidden h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
                                     selectedPayment === 'prazo' ? 'border-white bg-white' : 'border-indigo-300'
                                 }`}>
                                     {selectedPayment === 'prazo' && <div className="h-2 w-2 rounded-full bg-indigo-600" />}
@@ -116,7 +116,7 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, hid
                                 <p className="text-sm font-black text-white leading-tight">À Vista</p>
                             </div>
                             {isSelectable && (
-                                <div className={`h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                                <div className={`print:hidden h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center ${
                                     selectedPayment === 'avista' ? 'border-white bg-white' : 'border-emerald-300'
                                 }`}>
                                     {selectedPayment === 'avista' && <div className="h-2 w-2 rounded-full bg-emerald-600" />}

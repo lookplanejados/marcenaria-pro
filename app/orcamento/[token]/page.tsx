@@ -297,7 +297,7 @@ export default function PublicBudgetPage() {
                             <StatusIcon className={`h-5 w-5 shrink-0 ${statusInfo.text_c}`} />
                             <p className={`text-base font-bold ${statusInfo.text_c}`}>{statusInfo.text}</p>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0 print:hidden">
                             <Button size="sm" variant="outline" className="h-9 text-sm gap-1.5 px-3"
                                 onClick={handleDownloadPDF} disabled={generatingPDF}>
                                 <FileDown className="h-4 w-4" />
@@ -336,8 +336,10 @@ export default function PublicBudgetPage() {
                 {/* Condições de Pagamento */}
                 <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-3">
                     <div className="flex items-center gap-1.5">
-                        <h2 className="font-bold text-base text-slate-800 dark:text-slate-100">Escolha a condição de pagamento</h2>
-                        {budget.status !== 'approved' && <span className="text-red-500 text-base font-bold">*</span>}
+                        <h2 className="font-bold text-base text-slate-800 dark:text-slate-100">
+                            <span className="print:hidden">Escolha a </span>condição de pagamento
+                        </h2>
+                        {budget.status !== 'approved' && <span className="text-red-500 text-base font-bold print:hidden">*</span>}
                     </div>
                     <BudgetPaymentSimulator
                         budget={budget}
@@ -358,26 +360,28 @@ export default function PublicBudgetPage() {
                 )}
 
                 {/* Ação principal */}
-                {budget.status !== 'approved' ? (
-                    <Button
-                        className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white h-14 text-lg font-bold rounded-xl shadow-md"
-                        onClick={() => handleAction('approved')}
-                        disabled={acting}
-                    >
-                        <ShieldCheck className="h-6 w-6 mr-2" />Autorizar Contrato
-                    </Button>
-                ) : (
-                    <Button
-                        variant="outline"
-                        className="w-full text-amber-600 border-amber-300 hover:bg-amber-50 h-12 text-base font-semibold rounded-xl"
-                        onClick={() => handleAction('sent')}
-                        disabled={acting}
-                    >
-                        <LockOpen className="h-5 w-5 mr-2" />Reabrir Orçamento
-                    </Button>
-                )}
+                <div className="print:hidden">
+                    {budget.status !== 'approved' ? (
+                        <Button
+                            className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white h-14 text-lg font-bold rounded-xl shadow-md"
+                            onClick={() => handleAction('approved')}
+                            disabled={acting}
+                        >
+                            <ShieldCheck className="h-6 w-6 mr-2" />Autorizar Contrato
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            className="w-full text-amber-600 border-amber-300 hover:bg-amber-50 h-12 text-base font-semibold rounded-xl"
+                            onClick={() => handleAction('sent')}
+                            disabled={acting}
+                        >
+                            <LockOpen className="h-5 w-5 mr-2" />Reabrir Orçamento
+                        </Button>
+                    )}
+                </div>
 
-                <p className="text-center text-[10px] text-slate-300 dark:text-slate-700 pb-4">
+                <p className="text-center text-[10px] text-slate-300 dark:text-slate-700 pb-4 print:hidden">
                     Orçamento gerado pelo sistema Marcenaria Pro
                 </p>
             </div>
