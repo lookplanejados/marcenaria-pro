@@ -27,17 +27,15 @@ export async function PATCH(req: Request, { params }: { params: { token: string 
             } else if (status === 'sent') {
                 updatePayload.payment_type = 'both';
             }
-            const { data: updatedRows, error: updateErr } = await supabaseAdmin
+            const { error: updateErr } = await supabaseAdmin
                 .from('budgets')
                 .update(updatePayload)
-                .eq('id', budget.id)
-                .select('id, status, payment_type');
+                .eq('id', budget.id);
             if (updateErr) {
                 console.error('[budget update] set_status error:', updateErr);
                 return NextResponse.json({ error: updateErr.message }, { status: 500 });
             }
-            // Debug: retorna o estado real pós-update para diagnóstico
-            return NextResponse.json({ ok: true, debug: { budgetId: budget.id, payload: updatePayload, updatedRows } });
+            return NextResponse.json({ ok: true });
         }
 
         // Atualizar condições de pagamento
