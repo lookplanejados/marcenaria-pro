@@ -23,21 +23,21 @@ export async function PATCH(req: Request, { params }: { params: { token: string 
         if (action === 'set_status' && status) {
             const updatePayload: any = { status, updated_at: new Date().toISOString() };
             if (chosen_payment_type) {
-                // Ao autorizar: salva a condição escolhida
                 updatePayload.payment_type = chosen_payment_type;
             } else if (status === 'sent') {
-                // Ao reabrir: restaura para 'both' para que o cliente escolha novamente
                 updatePayload.payment_type = 'both';
             }
-            const { error: updateErr } = await supabaseAdmin
+            const { data: updatedRows, error: updateErr } = await supabaseAdmin
                 .from('budgets')
                 .update(updatePayload)
-                .eq('id', budget.id);
+                .eq('id', budget.id)
+                .select('id, status, payment_type');
             if (updateErr) {
                 console.error('[budget update] set_status error:', updateErr);
                 return NextResponse.json({ error: updateErr.message }, { status: 500 });
             }
-            return NextResponse.json({ ok: true });
+            // Debug: retorna o estado real pós-update para diagnóstico
+            return NextResponse.json({ ok: true, debug: { budgetId: budget.id, payload: updatePayload, updatedRows } });
         }
 
         // Atualizar condições de pagamento
