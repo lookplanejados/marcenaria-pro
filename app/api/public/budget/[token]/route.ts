@@ -39,6 +39,8 @@ export async function GET(req: Request, { params }: { params: { token: string } 
                 ...env,
                 items: (items || []).filter(i => i.environment_id === env.id),
             })),
+        }, {
+            headers: { 'Cache-Control': 'no-store' },
         });
     } catch (e: any) {
         return NextResponse.json({ error: e.message }, { status: 500 });

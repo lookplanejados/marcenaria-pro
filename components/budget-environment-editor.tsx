@@ -92,7 +92,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
         setLoading(true);
         try {
             if (isPublic) {
-                const res = await fetch(`/api/public/budget/${token}`);
+                const res = await fetch(`/api/public/budget/${token}`, { cache: 'no-store' });
                 if (!res.ok) throw new Error("Orçamento não encontrado");
                 const data = await res.json();
                 setEnvironments(data.environments || []);
