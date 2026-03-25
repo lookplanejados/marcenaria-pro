@@ -7,7 +7,7 @@ export async function GET(req: Request, { params }: { params: { token: string } 
     try {
         const { data: budget, error } = await supabaseAdmin
             .from('budgets')
-            .select('id, organization_id, client_name, client_address, budget_number, payment_type, total_prazo, total_avista, prazo_entry_percent, prazo_installments, avista_discount_percent, avista_entry_percent, observations, status, created_at')
+            .select('id, organization_id, client_name, client_address, budget_number, payment_type, total_prazo, total_avista, prazo_entry_percent, prazo_installments, avista_discount_percent, avista_entry_percent, observations, status, created_at, updated_at')
             .eq('public_token', params.token)
             .single();
 
