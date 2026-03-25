@@ -29,7 +29,14 @@ export async function PATCH(req: Request, { params }: { params: { token: string 
                 // Ao reabrir: restaura para 'both' para que o cliente escolha novamente
                 updatePayload.payment_type = 'both';
             }
-            await supabaseAdmin.from('budgets').update(updatePayload).eq('id', budget.id);
+            const { error: updateErr } = await supabaseAdmin
+                .from('budgets')
+                .update(updatePayload)
+                .eq('id', budget.id);
+            if (updateErr) {
+                console.error('[budget update] set_status error:', updateErr);
+                return NextResponse.json({ error: updateErr.message }, { status: 500 });
+            }
             return NextResponse.json({ ok: true });
         }
 

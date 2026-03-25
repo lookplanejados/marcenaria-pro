@@ -83,11 +83,16 @@ export default function PublicBudgetPage() {
         }
         setActing(true);
         try {
-            await fetch(`/api/public/budget/${token}/update`, {
+            const res = await fetch(`/api/public/budget/${token}/update`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'set_status', status, chosen_payment_type: selectedPayment }),
             });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                toast.error("Erro ao salvar", { description: err.error || "Tente novamente." });
+                return;
+            }
             if (status === 'sent') {
                 // Reabrir: volta payment_type para 'both' e limpa a seleção
                 setBudget(prev => prev ? { ...prev, status, payment_type: 'both' } : null);

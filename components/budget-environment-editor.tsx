@@ -315,8 +315,9 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                 <input
                                     type="checkbox"
                                     checked={env.items.length > 0 && env.items.every(i => i.is_active)}
-                                    onChange={() => handlePublicEnvToggle(env)}
-                                    className="h-5 w-5 accent-indigo-500 shrink-0"
+                                    onChange={() => !readOnly && handlePublicEnvToggle(env)}
+                                    disabled={readOnly}
+                                    className="h-5 w-5 accent-indigo-500 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                                     title="Marcar/desmarcar todos os itens deste ambiente"
                                 />
                             )}
@@ -424,8 +425,9 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                         <input
                                                             type="checkbox"
                                                             checked={item.is_active}
-                                                            onChange={() => handlePublicToggle(item)}
-                                                            className="h-4 w-4 accent-indigo-500"
+                                                            onChange={() => !readOnly && handlePublicToggle(item)}
+                                                            disabled={readOnly}
+                                                            className="h-4 w-4 accent-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
                                                         />
                                                         <span className="text-slate-500 font-mono self-start pt-0.5">
                                                             {String(item.qty % 1 === 0 ? Math.round(item.qty) : item.qty).padStart(2, '0')}
