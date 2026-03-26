@@ -29,16 +29,17 @@ export async function PATCH(req: Request, { params }: { params: { token: string 
             } else if (status === 'sent') {
                 updatePayload.payment_type = 'both';
             }
-            const { data: updated, error: updateErr } = await supabaseAdmin
+            const { data: rows, error: updateErr } = await supabaseAdmin
                 .from('budgets')
                 .update(updatePayload)
                 .eq('id', budget.id)
-                .select('id')
-                .single();
-            if (updateErr || !updated) {
-                const msg = updateErr?.message || 'Nenhuma linha atualizada.';
+                .select('id');
+            if (updateErr) {
                 console.error('[budget update] set_status error:', updateErr);
-                return NextResponse.json({ error: msg }, { status: 500 });
+                return NextResponse.json({ error: updateErr.message }, { status: 500 });
+            }
+            if (!rows || rows.length === 0) {
+                return NextResponse.json({ error: 'Nenhuma linha atualizada.' }, { status: 500 });
             }
             return NextResponse.json({ ok: true });
         }

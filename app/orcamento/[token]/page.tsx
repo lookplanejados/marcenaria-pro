@@ -94,14 +94,13 @@ export default function PublicBudgetPage() {
                 return;
             }
             if (status === 'sent') {
-                // Reabrir: volta payment_type para 'both' e limpa a seleção
-                setBudget(prev => prev ? { ...prev, status, payment_type: 'both' } : null);
                 setSelectedPayment(null);
                 toast.success("Orçamento reaberto. Escolha novamente a condição de pagamento.");
             } else {
-                setBudget(prev => prev ? { ...prev, status, payment_type: selectedPayment! } : null);
                 toast.success("Contrato autorizado! A marcenaria entrará em contato.");
             }
+            // re-fetch para garantir sincronismo com o banco
+            await load();
         } finally {
             setActing(false);
         }
