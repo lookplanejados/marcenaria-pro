@@ -544,11 +544,11 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                     <>
                                         {addingItemEnv === env.id ? (
                                             <div className="bg-slate-50 dark:bg-zinc-900 rounded-lg p-2 space-y-2 border border-slate-200 dark:border-zinc-700 text-xs mt-2">
-                                                <div className="grid grid-cols-2 gap-2">
+                                                <div className="space-y-2">
                                                     <div>
                                                         <Label className="text-[10px]">Da tabela de preços</Label>
                                                         <select
-                                                            className="w-full h-7 text-xs rounded border border-input bg-background px-2"
+                                                            className="w-full h-8 text-xs rounded border border-input bg-background px-2"
                                                             value={newItem.price_table_item_id}
                                                             onChange={e => handlePriceItemSelect(e.target.value)}
                                                         >
@@ -562,7 +562,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                     </div>
                                                     <div>
                                                         <Label className="text-[10px]">Descrição</Label>
-                                                        <Input className="h-7 text-xs" placeholder="Descrição do móvel"
+                                                        <Input className="h-8 text-xs" placeholder="Descrição do móvel"
                                                             value={newItem.description}
                                                             onChange={e => setNewItem(p => ({ ...p, description: e.target.value }))} />
                                                     </div>
@@ -606,7 +606,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                     <Button size="sm" className="flex-1 h-7 text-xs" onClick={() => handleAddItem(env.id)}>
                                                         <Check className="h-3 w-3 mr-1" />Adicionar
                                                     </Button>
-                                                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setAddingItemEnv(null)}>
+                                                    <Button size="sm" variant="outline" className="h-7 text-xs border-red-200 text-red-400 hover:bg-red-50 hover:text-red-600 hover:border-red-300" onClick={() => setAddingItemEnv(null)}>
                                                         <X className="h-3 w-3" />
                                                     </Button>
                                                 </div>
