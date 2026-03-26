@@ -81,9 +81,10 @@ export default function BudgetDetailPage() {
             if (!res.ok) { router.replace('/dashboard/budgets'); return; }
             const data = await res.json();
             setBudget(data);
-            // pré-seleciona a condição já salva (se não for 'both')
             if (data.payment_type === 'prazo' || data.payment_type === 'avista') {
                 setSelectedPayment(data.payment_type);
+            } else {
+                setSelectedPayment(null);
             }
         } finally {
             setLoading(false);
@@ -142,8 +143,11 @@ export default function BudgetDetailPage() {
     };
 
     const handleReopen = async () => {
-        const ok = await handleStatus('sent');
-        if (ok) toast.success("Orçamento reaberto para edição.");
+        const ok = await patch({ status: 'sent', payment_type: 'both' });
+        if (ok) {
+            setSelectedPayment(null);
+            toast.success("Orçamento reaberto para edição.");
+        }
     };
 
     const handleShare = async () => {
@@ -250,17 +254,6 @@ export default function BudgetDetailPage() {
                         <Button size="sm" variant="outline" onClick={handleShare}>
                             <Share2 className="h-4 w-4 mr-1" />Gerar Link
                         </Button>
-                        {budget.status !== 'approved' ? (
-                            <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                                onClick={handleApproveConfirm}>
-                                <ShieldCheck className="h-4 w-4 mr-1" />Autorizar Contrato
-                            </Button>
-                        ) : (
-                            <Button size="sm" variant="outline" className="text-amber-600 border-amber-300 hover:bg-amber-50"
-                                onClick={handleReopen}>
-                                <LockOpen className="h-4 w-4 mr-1" />Reabrir Orçamento
-                            </Button>
-                        )}
                     </div>
                 </div>
 
@@ -321,6 +314,26 @@ export default function BudgetDetailPage() {
                             Salvo automaticamente
                         </span>
                     </div>
+                )}
+            </div>
+
+            {/* Ação principal */}
+            <div>
+                {budget.status !== 'approved' ? (
+                    <Button
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white h-14 text-lg font-bold rounded-xl shadow-md"
+                        onClick={handleApproveConfirm}
+                    >
+                        <ShieldCheck className="h-6 w-6 mr-2" />Autorizar Contrato
+                    </Button>
+                ) : (
+                    <Button
+                        variant="outline"
+                        className="w-full text-amber-600 border-amber-300 hover:bg-amber-50 h-12 text-base font-semibold rounded-xl"
+                        onClick={handleReopen}
+                    >
+                        <LockOpen className="h-5 w-5 mr-2" />Reabrir Orçamento
+                    </Button>
                 )}
             </div>
 

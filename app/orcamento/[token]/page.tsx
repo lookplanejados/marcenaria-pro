@@ -66,6 +66,8 @@ export default function PublicBudgetPage() {
             setBudget(data);
             if (data.payment_type === 'prazo' || data.payment_type === 'avista') {
                 setSelectedPayment(data.payment_type);
+            } else {
+                setSelectedPayment(null);
             }
         } catch (e: any) {
             toast.error(e.message);
