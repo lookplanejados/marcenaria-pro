@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { recalcTotals } from '@/lib/budget-recalc';
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(req: Request, { params }: { params: { token: string } }) {
     try {
         const { data: budget, error: budgetErr } = await supabaseAdmin
@@ -27,13 +29,16 @@ export async function PATCH(req: Request, { params }: { params: { token: string 
             } else if (status === 'sent') {
                 updatePayload.payment_type = 'both';
             }
-            const { error: updateErr } = await supabaseAdmin
+            const { data: updated, error: updateErr } = await supabaseAdmin
                 .from('budgets')
                 .update(updatePayload)
-                .eq('id', budget.id);
-            if (updateErr) {
+                .eq('id', budget.id)
+                .select('id')
+                .single();
+            if (updateErr || !updated) {
+                const msg = updateErr?.message || 'Nenhuma linha atualizada.';
                 console.error('[budget update] set_status error:', updateErr);
-                return NextResponse.json({ error: updateErr.message }, { status: 500 });
+                return NextResponse.json({ error: msg }, { status: 500 });
             }
             return NextResponse.json({ ok: true });
         }

@@ -100,15 +100,21 @@ export default function BudgetDetailPage() {
             .then(({ data }) => { if (data) setOrgData(data); });
     }, []);
 
-    const patch = async (updates: Partial<Budget>) => {
+    const patch = async (updates: Partial<Budget>): Promise<boolean> => {
         const h = await authHeader();
         const res = await fetch(`/api/budgets/${id}`, {
             method: 'PUT',
             headers: { ...h, 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),
         });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            toast.error("Erro ao salvar", { description: err.error || "Tente novamente." });
+            return false;
+        }
         const data = await res.json();
         setBudget(prev => prev ? { ...prev, ...data } : null);
+        return true;
     };
 
     const handleObsChange = (val: string) => {
@@ -126,19 +132,18 @@ export default function BudgetDetailPage() {
     const handleStatus = async (status: string, paymentType?: 'prazo' | 'avista') => {
         const updates: any = { status };
         if (paymentType) updates.payment_type = paymentType;
-        await patch(updates);
-        toast.success(`Orçamento marcado como "${STATUS_LABELS[status]}"`);
+        return patch(updates);
     };
 
     const handleApproveConfirm = async () => {
         if (!selectedPayment) { toast.error("Selecione uma condição de pagamento na seção abaixo."); return; }
-        await handleStatus('approved', selectedPayment);
-        toast.success("Contrato autorizado! Orçamento bloqueado para edição.");
+        const ok = await handleStatus('approved', selectedPayment);
+        if (ok) toast.success("Contrato autorizado! Orçamento bloqueado para edição.");
     };
 
     const handleReopen = async () => {
-        await handleStatus('sent');
-        toast.success("Orçamento reaberto para edição.");
+        const ok = await handleStatus('sent');
+        if (ok) toast.success("Orçamento reaberto para edição.");
     };
 
     const handleShare = async () => {

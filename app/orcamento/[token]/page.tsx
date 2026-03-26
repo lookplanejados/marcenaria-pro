@@ -99,7 +99,7 @@ export default function PublicBudgetPage() {
                 setSelectedPayment(null);
                 toast.success("Orçamento reaberto. Escolha novamente a condição de pagamento.");
             } else {
-                setBudget(prev => prev ? { ...prev, status } : null);
+                setBudget(prev => prev ? { ...prev, status, payment_type: selectedPayment! } : null);
                 toast.success("Contrato autorizado! A marcenaria entrará em contato.");
             }
         } finally {
