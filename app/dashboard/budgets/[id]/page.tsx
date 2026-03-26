@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useRBAC } from "@/components/rbac-provider";
 import { toast } from "sonner";
 import { AuthService } from "@/services/authService";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { BudgetEnvironmentEditor } from "@/components/budget-environment-editor";
 import { BudgetPaymentSimulator } from "@/components/budget-payment-simulator";
 import { generateBudgetPDF } from "@/lib/generate-budget-pdf";
-import { ArrowLeft, FileText, Share2, LockOpen, Copy, RotateCcw, ShieldCheck, Clock, Send } from "lucide-react";
+import { ArrowLeft, FileText, Share2, LockOpen, Copy, ShieldCheck, Clock, Send, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Budget {
@@ -34,13 +34,6 @@ interface Budget {
     environments: any[];
 }
 
-const STATUS_LABELS: Record<string, string> = {
-    draft: "Rascunho", sent: "Enviado", approved: "Aprovado", rejected: "Rejeitado",
-};
-const STATUS_COLORS: Record<string, string> = {
-    draft: "bg-slate-100 text-slate-600", sent: "bg-blue-100 text-blue-700",
-    approved: "bg-emerald-100 text-emerald-700", rejected: "bg-red-100 text-red-600",
-};
 const STATUS_INFO: Record<string, { text: string; icon: any; bg: string; border: string; text_c: string }> = {
     draft:    { text: "Rascunho — não enviado", icon: Clock,       bg: "bg-slate-50 dark:bg-zinc-800/40",       border: "border-slate-200 dark:border-zinc-700",      text_c: "text-slate-500 dark:text-slate-400"     },
     sent:     { text: "Aguardando Aprovação",    icon: Send,        bg: "bg-indigo-50 dark:bg-indigo-900/20",    border: "border-indigo-200 dark:border-indigo-800",   text_c: "text-indigo-600 dark:text-indigo-400"   },
@@ -54,8 +47,6 @@ const fmt = (v: number) =>
 export default function BudgetDetailPage() {
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const isNew = searchParams.get('new') === 'true';
     const { isCarpenter, loading: rbacLoading, profile } = useRBAC();
 
     const [budget, setBudget]     = useState<Budget | null>(null);
@@ -168,13 +159,6 @@ export default function BudgetDetailPage() {
         }
     };
 
-    const handleRegenerateToken = async () => {
-        const h = await authHeader();
-        const res = await fetch(`/api/budgets/${id}/share`, { method: 'POST', headers: h });
-        const { public_url } = await res.json();
-        setShareUrl(public_url);
-        toast.success("Link regenerado!");
-    };
 
     const handleGeneratePDF = async () => {
         if (!budget) return;
@@ -229,30 +213,25 @@ export default function BudgetDetailPage() {
     return (
         <div className="max-w-3xl space-y-5">
             {/* Navegação */}
-            <div className="flex items-center gap-3">
-                <Button size="sm" variant="ghost" onClick={() => router.push('/dashboard/budgets')}>
-                    <ArrowLeft className="h-4 w-4 mr-1" />Voltar
-                </Button>
-                <span className="text-slate-300">/</span>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{budget.budget_number}</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_COLORS[budget.status]}`}>
-                    {STATUS_LABELS[budget.status]}
-                </span>
-            </div>
+            <button
+                className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                onClick={() => router.push('/dashboard/budgets')}
+            >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Orçamentos</span>
+            </button>
 
-            {/* Banner novo */}
-            {isNew && (
-                <div className="rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 p-4 text-sm text-indigo-700 dark:text-indigo-300">
-                    ✅ Orçamento criado! Agora adicione os ambientes e itens abaixo.
+            {/* Card do cliente */}
+            <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex overflow-hidden">
+                <div className="bg-indigo-600 flex items-center justify-center px-4 shrink-0">
+                    <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">PARA</span>
                 </div>
-            )}
-
-            {/* Cabeçalho */}
-            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-5">
-                <h2 className="text-xl font-bold">{budget.client_name}</h2>
-                {budget.client_address && (
-                    <p className="text-sm text-slate-500 mt-0.5">{budget.client_address}</p>
-                )}
+                <div className="px-4 py-4">
+                    <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 leading-tight">{budget.client_name}</h2>
+                    {budget.client_address && (
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{budget.client_address}</p>
+                    )}
+                </div>
             </div>
 
             {/* Card de status + ações */}
@@ -267,7 +246,7 @@ export default function BudgetDetailPage() {
                             <FileText className="h-4 w-4" />Baixar PDF
                         </Button>
                         <Button size="sm" variant="outline" className="h-9 text-sm gap-1.5 px-3" onClick={handleShare}>
-                            <Share2 className="h-4 w-4" />Gerar Link
+                            <Share2 className="h-4 w-4" />Compartilhar Link
                         </Button>
                     </div>
                 </div>
@@ -342,26 +321,46 @@ export default function BudgetDetailPage() {
 
             {/* Modal Compartilhar */}
             <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Link do Cliente</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-3 py-2">
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Compartilhe este link com o cliente para que ele possa visualizar, simular condições de pagamento e aprovar o orçamento.
-                        </p>
-                        <div className="flex gap-2">
-                            <input
-                                readOnly value={shareUrl}
-                                className="flex-1 text-xs rounded-md border px-3 py-2 bg-slate-50 dark:bg-zinc-900 dark:border-zinc-700"
-                            />
-                            <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Copiado!"); }}>
-                                <Copy className="h-4 w-4" />
-                            </Button>
+                <DialogContent className={[
+                    "gap-0 p-0 overflow-hidden",
+                    // desktop: modal centralizado
+                    "sm:max-w-xs sm:rounded-2xl",
+                    // mobile: bottom sheet
+                    "max-sm:!left-0 max-sm:!right-0 max-sm:!bottom-0 max-sm:!top-auto",
+                    "max-sm:!translate-x-0 max-sm:!translate-y-0",
+                    "max-sm:!w-full max-sm:max-w-full",
+                    "max-sm:rounded-t-3xl max-sm:rounded-b-none",
+                    "max-sm:data-[state=open]:slide-in-from-bottom-8 max-sm:data-[state=open]:slide-in-from-top-0",
+                ].join(" ")}>
+                    {/* Alça — mobile */}
+                    <div className="sm:hidden flex justify-center pt-3 pb-0">
+                        <div className="h-1 w-10 rounded-full bg-slate-200 dark:bg-zinc-700" />
+                    </div>
+
+                    <div className="px-5 pt-4 pb-6 sm:px-6 sm:pt-5 sm:pb-5 space-y-4">
+                        {/* Título */}
+                        <div className="flex items-center gap-2">
+                            <Share2 className="h-4 w-4 text-indigo-500 shrink-0" />
+                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Compartilhar orçamento</span>
                         </div>
-                        <Button size="sm" variant="ghost" className="text-xs text-slate-400" onClick={handleRegenerateToken}>
-                            <RotateCcw className="h-3 w-3 mr-1" />Regenerar link
-                        </Button>
+
+                        {/* Botões */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                className="flex flex-col items-center justify-center gap-2 h-20 sm:h-16 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700 transition-colors"
+                                onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Link copiado!"); }}
+                            >
+                                <Copy className="h-6 w-6 text-slate-600 dark:text-slate-300" />
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Copiar link</span>
+                            </button>
+                            <button
+                                className="flex flex-col items-center justify-center gap-2 h-20 sm:h-16 rounded-2xl bg-green-500 hover:bg-green-600 active:bg-green-700 transition-colors"
+                                onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`Olá! Segue o link do seu orçamento interativo, de Móveis Planejados, realizado na empresa: ${orgData.name || orgData.company_name}.\n\n${shareUrl}`)}`, '_blank')}
+                            >
+                                <MessageCircle className="h-6 w-6 text-white" />
+                                <span className="text-xs font-semibold text-white">WhatsApp</span>
+                            </button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

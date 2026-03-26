@@ -369,12 +369,12 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                         {!isCollapsed && (
                             <div className={`space-y-1 ${isPublic ? 'px-2 py-2' : 'p-3 space-y-1.5'}`}>
                                 {/* cabeçalho tabela */}
-                                <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}>
-                                    <span></span>
-                                    <span>Qtd</span>
+                                <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 6rem 6rem 2.5rem' }}>
+                                    {isPublic ? <span /> : null}
+                                    <span className={isPublic ? '' : 'text-center'}>Qtd</span>
                                     <span>{isPublic ? 'Descrição' : 'Descrição / Dimensões'}</span>
                                     <span className="text-right">A Prazo</span>
-                                    <span className="text-right">À Vista</span>
+                                    <span className="text-right border-l border-slate-200 dark:border-zinc-700 pl-2">À Vista</span>
                                     {!isPublic && <span />}
                                 </div>
 
@@ -418,7 +418,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                 className={`grid items-center text-xs px-1 rounded transition-colors ${
                                                     !item.is_active ? 'opacity-50 line-through' : ''
                                                 } ${isPublic ? 'py-2 hover:bg-white/60 dark:hover:bg-zinc-800/60' : 'py-1.5'}`}
-                                                style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 4.5rem 4.5rem 3rem' }}
+                                                style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 6rem 6rem 2.5rem' }}
                                             >
                                                 {isPublic ? (
                                                     <>
@@ -457,7 +457,7 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                 </div>
 
                                                 <span className="text-right font-medium self-start pt-0.5">{fmt(item.value_prazo)}</span>
-                                                <span className="text-right text-emerald-600 font-medium self-start pt-0.5">{fmt(item.value_prazo * (1 - avistaDiscountPercent / 100))}</span>
+                                                <span className="text-right text-emerald-600 font-medium self-start pt-0.5 border-l border-slate-100 dark:border-zinc-800 pl-2">{fmt(item.value_prazo * (1 - avistaDiscountPercent / 100))}</span>
 
                                                 {!isPublic && (
                                                     <div className="flex items-center gap-1 justify-end self-start pt-0.5">
@@ -477,10 +477,10 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                 ))}
 
                                 {/* subtotal */}
-                                <div className="flex justify-end gap-4 text-xs font-bold border-t pt-1.5 mt-1">
+                                <div className="flex justify-end gap-3 text-xs font-bold border-t pt-1.5 mt-1">
                                     <span className="text-slate-400">Sub Total =&gt;</span>
-                                    <span className="text-indigo-600">{fmt(subPrazo)}</span>
-                                    <span className="text-emerald-600">{fmt(subAvista)}</span>
+                                    <span className="text-indigo-600 min-w-[6rem] text-right">{fmt(subPrazo)}</span>
+                                    <span className="text-emerald-600 min-w-[6rem] text-right border-l border-slate-200 dark:border-zinc-700 pl-2">{fmt(subAvista)}</span>
                                 </div>
 
                                 {/* form adicionar item */}

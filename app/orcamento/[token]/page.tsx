@@ -297,7 +297,7 @@ export default function PublicBudgetPage() {
                         <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">PARA</span>
                     </div>
                     <div className="px-4 py-4">
-                        <p className="text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">{budget.client_name}</p>
+                        <p className="text-xl font-black text-slate-800 dark:text-slate-100 leading-tight">{budget.client_name}</p>
                         {budget.client_address && (
                             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{budget.client_address}</p>
                         )}
