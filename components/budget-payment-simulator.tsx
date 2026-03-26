@@ -51,7 +51,7 @@ export function BudgetPaymentSimulator({ budget, onChange, readOnly = false, hid
     const isSelectable = !!onSelectPayment;
 
     return (
-        <div className={`${showPrazo && showAvista ? 'grid grid-cols-2 gap-3' : ''}`}>
+        <div className={`${showPrazo && showAvista ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : ''}`}>
 
             {/* ── PRAZO ─────────────────────────────── */}
             {showPrazo && (

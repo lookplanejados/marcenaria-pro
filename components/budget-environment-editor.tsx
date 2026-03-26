@@ -368,8 +368,8 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
 
                         {!isCollapsed && (
                             <div className={`space-y-1 ${isPublic ? 'px-2 py-2' : 'p-3 space-y-1.5'}`}>
-                                {/* cabeçalho tabela */}
-                                <div className="grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 6rem 6rem 2.5rem' }}>
+                                {/* cabeçalho tabela — oculto no mobile */}
+                                <div className="hidden sm:grid text-[10px] text-slate-400 font-semibold px-1" style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 6rem 6rem 2.5rem' }}>
                                     {isPublic ? <span /> : null}
                                     <span className={isPublic ? '' : 'text-center'}>Qtd</span>
                                     <span>{isPublic ? 'Descrição' : 'Descrição / Dimensões'}</span>
@@ -414,64 +414,120 @@ export function BudgetEnvironmentEditor({ budgetId, token, readOnly = false, avi
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div
-                                                className={`grid items-center text-xs px-1 rounded transition-colors ${
-                                                    !item.is_active ? 'opacity-50 line-through' : ''
-                                                } ${isPublic ? 'py-2 hover:bg-white/60 dark:hover:bg-zinc-800/60' : 'py-1.5'}`}
-                                                style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 6rem 6rem 2.5rem' }}
-                                            >
-                                                {isPublic ? (
-                                                    <>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={item.is_active}
-                                                            onChange={() => !readOnly && handlePublicToggle(item)}
-                                                            disabled={readOnly}
-                                                            className="h-4 w-4 accent-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
-                                                        />
-                                                        <span className="text-slate-500 font-mono self-start pt-0.5">
+                                            <>
+                                                {/* ── Layout mobile ── */}
+                                                <div className={`sm:hidden px-1 py-2 rounded transition-colors space-y-1.5 ${
+                                                    isPublic ? 'hover:bg-white/60 dark:hover:bg-zinc-800/60' : ''
+                                                } ${!item.is_active ? 'opacity-50' : ''}`}>
+                                                    {/* linha 1: checkbox? + qtd + descrição + ações */}
+                                                    <div className="flex items-start gap-2">
+                                                        {isPublic && (
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={item.is_active}
+                                                                onChange={() => !readOnly && handlePublicToggle(item)}
+                                                                disabled={readOnly}
+                                                                className="h-4 w-4 accent-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed mt-0.5 shrink-0"
+                                                            />
+                                                        )}
+                                                        <span className="text-slate-500 text-xs tabular-nums shrink-0 w-5 text-right pt-0.5">
                                                             {String(item.qty % 1 === 0 ? Math.round(item.qty) : item.qty).padStart(2, '0')}
                                                         </span>
-                                                    </>
-                                                ) : (
-                                                    <span className="text-slate-500 self-start pt-0.5">{String(item.qty % 1 === 0 ? Math.round(item.qty) : item.qty).padStart(2, '0')}</span>
-                                                )}
-
-                                                <div className="min-w-0">
-                                                    <span className={`truncate block ${isPublic ? 'text-slate-700 dark:text-slate-200' : 'font-medium'}`}>{item.description}</span>
-                                                    {!isPublic && (item.alt_cm > 0 || item.larg_cm > 0 || item.prof_cm > 0) && (
-                                                        <p className="text-[10px] text-slate-400 mt-0.5 flex flex-wrap gap-x-2">
-                                                            {item.alt_cm > 0 && <span>Alt: {item.alt_cm}cm</span>}
-                                                            {item.larg_cm > 0 && <span>Larg: {item.larg_cm}cm</span>}
-                                                            {item.prof_cm > 0 && <span>Prof: {item.prof_cm}cm</span>}
-                                                            {item.alt_cm > 0 && item.larg_cm > 0 && (
-                                                                <span className="text-indigo-400 font-semibold">
-                                                                    {item.price_prazo_m2 > 0 && (
-                                                                        <>{fmt(item.price_prazo_m2)}/m² · </>
+                                                        <div className="flex-1 min-w-0">
+                                                            <span className={`block break-words text-xs ${!item.is_active ? 'line-through' : ''} ${isPublic ? 'text-slate-700 dark:text-slate-200' : 'font-medium'}`}>
+                                                                {item.description}
+                                                            </span>
+                                                            {!isPublic && (item.alt_cm > 0 || item.larg_cm > 0 || item.prof_cm > 0) && (
+                                                                <p className="text-[10px] text-slate-400 mt-0.5 flex flex-wrap gap-x-2">
+                                                                    {item.alt_cm > 0 && <span>Alt: {item.alt_cm}cm</span>}
+                                                                    {item.larg_cm > 0 && <span>Larg: {item.larg_cm}cm</span>}
+                                                                    {item.prof_cm > 0 && <span>Prof: {item.prof_cm}cm</span>}
+                                                                    {item.alt_cm > 0 && item.larg_cm > 0 && (
+                                                                        <span className="text-indigo-400 font-semibold">
+                                                                            {item.price_prazo_m2 > 0 && <>{fmt(item.price_prazo_m2)}/m² · </>}
+                                                                            {((item.alt_cm * item.larg_cm) / 10000).toFixed(2)} m²
+                                                                        </span>
                                                                     )}
-                                                                    {((item.alt_cm * item.larg_cm) / 10000).toFixed(2)} m²
-                                                                </span>
+                                                                </p>
                                                             )}
-                                                        </p>
-                                                    )}
+                                                        </div>
+                                                        {!isPublic && (
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                <button onClick={() => { setEditItemId(item.id); setEditItem({}); }}
+                                                                    className="text-slate-300 hover:text-indigo-500 transition-colors p-1">
+                                                                    <Pencil className="h-3 w-3" />
+                                                                </button>
+                                                                <button onClick={() => handleDeleteItem(env.id, item.id)}
+                                                                    className="text-slate-300 hover:text-red-500 transition-colors p-1">
+                                                                    <Trash2 className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {/* linha 2: valores */}
+                                                    <div className={`flex justify-end gap-4 text-xs font-medium pl-7 ${!item.is_active ? 'line-through' : ''}`}>
+                                                        <span className="text-slate-500 text-[10px] self-center">A Prazo</span>
+                                                        <span className="font-semibold">{fmt(item.value_prazo)}</span>
+                                                        <span className="text-slate-500 text-[10px] self-center border-l border-slate-200 dark:border-zinc-700 pl-4">À Vista</span>
+                                                        <span className="text-emerald-600 font-semibold">{fmt(item.value_prazo * (1 - avistaDiscountPercent / 100))}</span>
+                                                    </div>
                                                 </div>
 
-                                                <span className="text-right font-medium self-start pt-0.5">{fmt(item.value_prazo)}</span>
-                                                <span className="text-right text-emerald-600 font-medium self-start pt-0.5 border-l border-slate-100 dark:border-zinc-800 pl-2">{fmt(item.value_prazo * (1 - avistaDiscountPercent / 100))}</span>
-
-                                                {!isPublic && (
-                                                    <div className="flex items-center gap-1 justify-end self-start pt-0.5">
-                                                        <button onClick={() => { setEditItemId(item.id); setEditItem({}); }}
-                                                            className="text-slate-300 hover:text-indigo-500 transition-colors">
-                                                            <Pencil className="h-3 w-3" />
-                                                        </button>
-                                                        <button onClick={() => handleDeleteItem(env.id, item.id)}
-                                                            className="text-slate-300 hover:text-red-500 transition-colors">
-                                                            <Trash2 className="h-3 w-3" />
-                                                        </button>
+                                                {/* ── Layout desktop ── */}
+                                                <div
+                                                    className={`hidden sm:grid items-center text-xs px-1 rounded transition-colors ${
+                                                        !item.is_active ? 'opacity-50 line-through' : ''
+                                                    } ${isPublic ? 'py-2 hover:bg-white/60 dark:hover:bg-zinc-800/60' : 'py-1.5'}`}
+                                                    style={{ gridTemplateColumns: isPublic ? '2rem 2.5rem 1fr 6rem 6rem' : '2rem 1fr 6rem 6rem 2.5rem' }}
+                                                >
+                                                    {isPublic ? (
+                                                        <>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={item.is_active}
+                                                                onChange={() => !readOnly && handlePublicToggle(item)}
+                                                                disabled={readOnly}
+                                                                className="h-4 w-4 accent-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                            />
+                                                            <span className="text-slate-500 font-mono self-start pt-0.5">
+                                                                {String(item.qty % 1 === 0 ? Math.round(item.qty) : item.qty).padStart(2, '0')}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-slate-500 self-start pt-0.5">{String(item.qty % 1 === 0 ? Math.round(item.qty) : item.qty).padStart(2, '0')}</span>
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <span className={`truncate block ${isPublic ? 'text-slate-700 dark:text-slate-200' : 'font-medium'}`}>{item.description}</span>
+                                                        {!isPublic && (item.alt_cm > 0 || item.larg_cm > 0 || item.prof_cm > 0) && (
+                                                            <p className="text-[10px] text-slate-400 mt-0.5 flex flex-wrap gap-x-2">
+                                                                {item.alt_cm > 0 && <span>Alt: {item.alt_cm}cm</span>}
+                                                                {item.larg_cm > 0 && <span>Larg: {item.larg_cm}cm</span>}
+                                                                {item.prof_cm > 0 && <span>Prof: {item.prof_cm}cm</span>}
+                                                                {item.alt_cm > 0 && item.larg_cm > 0 && (
+                                                                    <span className="text-indigo-400 font-semibold">
+                                                                        {item.price_prazo_m2 > 0 && <>{fmt(item.price_prazo_m2)}/m² · </>}
+                                                                        {((item.alt_cm * item.larg_cm) / 10000).toFixed(2)} m²
+                                                                    </span>
+                                                                )}
+                                                            </p>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
+                                                    <span className="text-right font-medium self-start pt-0.5">{fmt(item.value_prazo)}</span>
+                                                    <span className="text-right text-emerald-600 font-medium self-start pt-0.5 border-l border-slate-100 dark:border-zinc-800 pl-2">{fmt(item.value_prazo * (1 - avistaDiscountPercent / 100))}</span>
+                                                    {!isPublic && (
+                                                        <div className="flex items-center gap-1 justify-end self-start pt-0.5">
+                                                            <button onClick={() => { setEditItemId(item.id); setEditItem({}); }}
+                                                                className="text-slate-300 hover:text-indigo-500 transition-colors">
+                                                                <Pencil className="h-3 w-3" />
+                                                            </button>
+                                                            <button onClick={() => handleDeleteItem(env.id, item.id)}
+                                                                className="text-slate-300 hover:text-red-500 transition-colors">
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
                                         )}
                                     </div>
                                 ))}
