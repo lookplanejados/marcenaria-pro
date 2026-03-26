@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import { unstable_noStore as noStore } from 'next/cache';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request, { params }: { params: { token: string } }) {
+    noStore();
     try {
         const { data: budget, error } = await supabaseAdmin
             .from('budgets')
@@ -42,7 +44,11 @@ export async function GET(req: Request, { params }: { params: { token: string } 
                 items: (items || []).filter(i => i.environment_id === env.id),
             })),
         }, {
-            headers: { 'Cache-Control': 'no-store' },
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+                'Pragma': 'no-cache',
+                'Surrogate-Control': 'no-store',
+            },
         });
     } catch (e: any) {
         return NextResponse.json({ error: e.message }, { status: 500 });

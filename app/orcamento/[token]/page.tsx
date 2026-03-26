@@ -60,7 +60,7 @@ export default function PublicBudgetPage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/public/budget/${token}`, { cache: 'no-store' });
+            const res = await fetch(`/api/public/budget/${token}?_=${Date.now()}`, { cache: 'no-store' });
             if (!res.ok) throw new Error("Orçamento não encontrado.");
             const data = await res.json();
             setBudget(data);
