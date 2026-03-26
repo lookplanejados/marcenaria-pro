@@ -88,7 +88,7 @@ export default function PublicBudgetPage() {
             const res = await fetch(`/api/public/budget/${token}/update`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'set_status', status, chosen_payment_type: selectedPayment }),
+                body: JSON.stringify({ action: 'set_status', status, chosen_payment_type: status === 'approved' ? selectedPayment : null }),
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
