@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { BudgetEnvironmentEditor } from "@/components/budget-environment-editor";
 import { BudgetPaymentSimulator } from "@/components/budget-payment-simulator";
 import { generateBudgetPDF } from "@/lib/generate-budget-pdf";
-import { ArrowLeft, FileText, Share2, CheckCircle2, LockOpen, Copy, RotateCcw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, FileText, Share2, LockOpen, Copy, RotateCcw, ShieldCheck, Clock, Send } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Budget {
@@ -40,6 +40,12 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
     draft: "bg-slate-100 text-slate-600", sent: "bg-blue-100 text-blue-700",
     approved: "bg-emerald-100 text-emerald-700", rejected: "bg-red-100 text-red-600",
+};
+const STATUS_INFO: Record<string, { text: string; icon: any; bg: string; border: string; text_c: string }> = {
+    draft:    { text: "Rascunho — não enviado", icon: Clock,       bg: "bg-slate-50 dark:bg-zinc-800/40",       border: "border-slate-200 dark:border-zinc-700",      text_c: "text-slate-500 dark:text-slate-400"     },
+    sent:     { text: "Aguardando Aprovação",    icon: Send,        bg: "bg-indigo-50 dark:bg-indigo-900/20",    border: "border-indigo-200 dark:border-indigo-800",   text_c: "text-indigo-600 dark:text-indigo-400"   },
+    approved: { text: "Contrato Autorizado",     icon: ShieldCheck, bg: "bg-emerald-50 dark:bg-emerald-900/20", border: "border-emerald-200 dark:border-emerald-800", text_c: "text-emerald-600 dark:text-emerald-400" },
+    rejected: { text: "Orçamento Recusado",      icon: Clock,       bg: "bg-red-50 dark:bg-red-900/20",         border: "border-red-200 dark:border-red-800",         text_c: "text-red-500 dark:text-red-400"         },
 };
 
 const fmt = (v: number) =>
@@ -217,6 +223,9 @@ export default function BudgetDetailPage() {
     if (loading) return <div className="text-sm text-slate-400 animate-pulse p-8">Carregando orçamento...</div>;
     if (!budget) return null;
 
+    const statusInfo = STATUS_INFO[budget.status] || STATUS_INFO.sent;
+    const StatusIcon = statusInfo.icon;
+
     return (
         <div className="max-w-3xl space-y-5">
             {/* Navegação */}
@@ -239,36 +248,30 @@ export default function BudgetDetailPage() {
             )}
 
             {/* Cabeçalho */}
-            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-5 space-y-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                        <h2 className="text-xl font-bold">{budget.client_name}</h2>
-                        {budget.client_address && (
-                            <p className="text-sm text-slate-500">{budget.client_address}</p>
-                        )}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" onClick={handleGeneratePDF}>
-                            <FileText className="h-4 w-4 mr-1" />Baixar PDF
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={handleShare}>
-                            <Share2 className="h-4 w-4 mr-1" />Gerar Link
-                        </Button>
-                    </div>
-                </div>
-
+            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-5">
+                <h2 className="text-xl font-bold">{budget.client_name}</h2>
+                {budget.client_address && (
+                    <p className="text-sm text-slate-500 mt-0.5">{budget.client_address}</p>
+                )}
             </div>
 
-            {/* Banner contrato autorizado */}
-            {budget.status === 'approved' && (
-                <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 p-4 flex items-center gap-3">
-                    <ShieldCheck className="h-6 w-6 text-emerald-500 shrink-0" />
-                    <div>
-                        <p className="font-semibold text-emerald-700 dark:text-emerald-300 text-sm">Contrato Autorizado</p>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400">Este orçamento está bloqueado. Clique em "Reabrir Orçamento" para editar.</p>
+            {/* Card de status + ações */}
+            <div className={`rounded-xl border ${statusInfo.bg} ${statusInfo.border} px-4 py-3`}>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                        <StatusIcon className={`h-5 w-5 shrink-0 ${statusInfo.text_c}`} />
+                        <p className={`text-base font-bold ${statusInfo.text_c}`}>{statusInfo.text}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Button size="sm" variant="outline" className="h-9 text-sm gap-1.5 px-3" onClick={handleGeneratePDF}>
+                            <FileText className="h-4 w-4" />Baixar PDF
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-9 text-sm gap-1.5 px-3" onClick={handleShare}>
+                            <Share2 className="h-4 w-4" />Gerar Link
+                        </Button>
                     </div>
                 </div>
-            )}
+            </div>
 
             {/* Ambientes e Itens */}
             <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-5 space-y-4">
