@@ -211,7 +211,7 @@ export default function BudgetDetailPage() {
     const StatusIcon = statusInfo.icon;
 
     return (
-        <div className="max-w-3xl space-y-5">
+        <div className="max-w-3xl space-y-4 pb-28 sm:pb-8">
             {/* Navegação */}
             <button
                 className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
@@ -235,26 +235,24 @@ export default function BudgetDetailPage() {
             </div>
 
             {/* Card de status + ações */}
-            <div className={`rounded-xl border ${statusInfo.bg} ${statusInfo.border} px-4 py-3`}>
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                        <StatusIcon className={`h-5 w-5 shrink-0 ${statusInfo.text_c}`} />
-                        <p className={`text-base font-bold ${statusInfo.text_c}`}>{statusInfo.text}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Button size="sm" variant="outline" className="h-9 text-sm gap-1.5 px-3" onClick={handleGeneratePDF}>
-                            <FileText className="h-4 w-4" />Baixar PDF
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-9 text-sm gap-1.5 px-3" onClick={handleShare}>
-                            <Share2 className="h-4 w-4" />Compartilhar Link
-                        </Button>
-                    </div>
+            <div className={`rounded-xl border ${statusInfo.bg} ${statusInfo.border} px-4 py-3 space-y-3`}>
+                <div className="flex items-center gap-2">
+                    <StatusIcon className={`h-5 w-5 shrink-0 ${statusInfo.text_c}`} />
+                    <p className={`text-base font-bold ${statusInfo.text_c}`}>{statusInfo.text}</p>
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1 h-11 text-sm gap-1.5" onClick={handleGeneratePDF}>
+                        <FileText className="h-4 w-4" />Baixar PDF
+                    </Button>
+                    <Button variant="outline" className="flex-1 h-11 text-sm gap-1.5" onClick={handleShare}>
+                        <Share2 className="h-4 w-4" />Compartilhar
+                    </Button>
                 </div>
             </div>
 
             {/* Ambientes e Itens */}
-            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-5 space-y-4">
-                <h3 className="font-semibold text-sm">Ambientes e Móveis</h3>
+            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4 sm:p-5 space-y-4">
+                <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 uppercase tracking-wide">Ambientes e Móveis</h3>
                 <BudgetEnvironmentEditor
                     budgetId={id}
                     avistaDiscountPercent={budget.avista_discount_percent}
@@ -264,9 +262,9 @@ export default function BudgetDetailPage() {
             </div>
 
             {/* Condições de Pagamento */}
-            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-5 space-y-3">
+            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4 sm:p-5 space-y-3">
                 <div className="flex items-center gap-1.5">
-                    <h3 className="font-semibold text-sm">Escolha a condição de pagamento:</h3>
+                    <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 uppercase tracking-wide">Condição de Pagamento</h3>
                     {budget.status !== 'approved' && <span className="text-red-500 text-sm font-bold">*</span>}
                 </div>
                 <BudgetPaymentSimulator
@@ -279,8 +277,8 @@ export default function BudgetDetailPage() {
             </div>
 
             {/* Observações */}
-            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-5 space-y-2">
-                <h3 className="font-semibold text-sm">Observações</h3>
+            <div className="rounded-xl border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4 sm:p-5 space-y-2">
+                <h3 className="font-bold text-sm text-slate-700 dark:text-slate-300 uppercase tracking-wide">Observações</h3>
                 <Textarea
                     className="text-sm resize-none"
                     rows={4}
@@ -299,8 +297,8 @@ export default function BudgetDetailPage() {
                 )}
             </div>
 
-            {/* Ação principal */}
-            <div>
+            {/* Ação principal — sticky no mobile */}
+            <div className="fixed bottom-0 left-0 right-0 sm:relative sm:bottom-auto sm:left-auto sm:right-auto z-20 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-sm border-t border-slate-200 dark:border-zinc-800 sm:bg-transparent sm:dark:bg-transparent sm:border-none sm:backdrop-blur-none p-4 sm:p-0">
                 {budget.status !== 'approved' ? (
                     <Button
                         className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white h-14 text-lg font-bold rounded-xl shadow-md"

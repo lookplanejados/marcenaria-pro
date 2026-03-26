@@ -288,11 +288,10 @@ export default function PublicBudgetPage() {
                 </div>
             </div>
 
-            <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+            <div className="max-w-2xl mx-auto px-4 py-5 space-y-4 pb-28 print:pb-0">
 
                 {/* Card do cliente */}
                 <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex overflow-hidden">
-                    {/* Label PARA */}
                     <div className="bg-indigo-600 flex items-center justify-center px-4 shrink-0">
                         <span className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">PARA</span>
                     </div>
@@ -304,31 +303,28 @@ export default function PublicBudgetPage() {
                     </div>
                 </div>
 
-                {/* Status + Ações de download — entre cabeçalho e itens */}
-                <div className={`rounded-xl border ${statusInfo.bg} ${statusInfo.border} px-4 py-3`}>
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-2">
-                            <StatusIcon className={`h-5 w-5 shrink-0 ${statusInfo.text_c}`} />
-                            <p className={`text-base font-bold ${statusInfo.text_c}`}>{statusInfo.text}</p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 print:hidden">
-                            <Button size="sm" variant="outline" className="h-9 text-sm gap-1.5 px-3"
-                                onClick={handleDownloadPDF} disabled={generatingPDF}>
-                                <FileDown className="h-4 w-4" />
-                                {generatingPDF ? "Gerando..." : "Baixar PDF"}
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-9 w-9 p-0"
-                                title="Imprimir" onClick={() => window.print()}>
-                                <Printer className="h-4 w-4" />
-                            </Button>
-                        </div>
+                {/* Status + Ações */}
+                <div className={`rounded-xl border ${statusInfo.bg} ${statusInfo.border} px-4 py-3 space-y-3 print:hidden`}>
+                    <div className="flex items-center gap-2">
+                        <StatusIcon className={`h-5 w-5 shrink-0 ${statusInfo.text_c}`} />
+                        <p className={`text-base font-bold ${statusInfo.text_c}`}>{statusInfo.text}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" className="flex-1 h-11 text-sm gap-1.5"
+                            onClick={handleDownloadPDF} disabled={generatingPDF}>
+                            <FileDown className="h-4 w-4" />
+                            {generatingPDF ? "Gerando..." : "Baixar PDF"}
+                        </Button>
+                        <Button variant="outline" className="h-11 w-11 p-0 shrink-0"
+                            title="Imprimir" onClick={() => window.print()}>
+                            <Printer className="h-4 w-4" />
+                        </Button>
                     </div>
                 </div>
 
-
                 {/* Ambientes */}
-                <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-3">
-                    <h2 className="font-bold text-base text-slate-800 dark:text-slate-100">Itens do Orçamento</h2>
+                <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-4 sm:p-5 space-y-3">
+                    <h2 className="font-bold text-sm text-slate-700 dark:text-slate-300 uppercase tracking-wide">Itens do Orçamento</h2>
                     <BudgetEnvironmentEditor
                         token={token}
                         readOnly={budget.status === 'approved'}
@@ -338,12 +334,12 @@ export default function PublicBudgetPage() {
                 </div>
 
                 {/* Condições de Pagamento */}
-                <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-3">
+                <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-4 sm:p-5 space-y-3">
                     <div className="flex items-center gap-1.5">
-                        <h2 className="font-bold text-base text-slate-800 dark:text-slate-100">
+                        <h2 className="font-bold text-sm text-slate-700 dark:text-slate-300 uppercase tracking-wide print:hidden">
                             <span className="print:hidden">Escolha a </span>condição de pagamento
                         </h2>
-                        {budget.status !== 'approved' && <span className="text-red-500 text-base font-bold print:hidden">*</span>}
+                        {budget.status !== 'approved' && <span className="text-red-500 font-bold print:hidden">*</span>}
                     </div>
                     <BudgetPaymentSimulator
                         budget={budget}
@@ -357,14 +353,20 @@ export default function PublicBudgetPage() {
 
                 {/* Observações */}
                 {budget.observations && (
-                    <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-5 space-y-2">
-                        <h2 className="font-bold text-base text-slate-800 dark:text-slate-100">Observações</h2>
+                    <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-4 sm:p-5 space-y-2">
+                        <h2 className="font-bold text-sm text-slate-700 dark:text-slate-300 uppercase tracking-wide">Observações</h2>
                         <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">{budget.observations}</p>
                     </div>
                 )}
 
-                {/* Ação principal */}
-                <div className="print:hidden">
+                <p className="text-center text-[10px] text-slate-300 dark:text-slate-700 print:hidden">
+                    Orçamento gerado pelo sistema Marcenaria Pro
+                </p>
+            </div>
+
+            {/* Ação principal — sticky no mobile */}
+            <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-sm border-t border-slate-200 dark:border-zinc-800 p-4 print:hidden">
+                <div className="max-w-2xl mx-auto">
                     {budget.status !== 'approved' ? (
                         <Button
                             className="w-full bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white h-14 text-lg font-bold rounded-xl shadow-md"
@@ -384,10 +386,6 @@ export default function PublicBudgetPage() {
                         </Button>
                     )}
                 </div>
-
-                <p className="text-center text-[10px] text-slate-300 dark:text-slate-700 pb-4 print:hidden">
-                    Orçamento gerado pelo sistema Marcenaria Pro
-                </p>
             </div>
 
             {/* Alerta: condição de pagamento não selecionada */}
